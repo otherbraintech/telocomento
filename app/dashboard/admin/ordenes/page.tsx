@@ -45,7 +45,7 @@ export default async function AdminOrdenesPage() {
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {orders.map((order) => (
+                {orders.map((order: any) => (
                   <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
                     <td className="p-4 align-middle font-mono text-[10px]">{order.id}</td>
                     <td className="p-4 align-middle">{order.user.name}</td>

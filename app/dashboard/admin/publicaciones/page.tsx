@@ -46,7 +46,7 @@ export default async function AdminPublicacionesPage() {
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {publications.map((pub) => (
+                {publications.map((pub: any) => (
                   <tr key={pub.id} className="border-b transition-colors hover:bg-muted/50">
                     <td className="p-4 align-middle font-medium">{pub.scrapingCard.user.name}</td>
                     <td className="p-4 align-middle">
