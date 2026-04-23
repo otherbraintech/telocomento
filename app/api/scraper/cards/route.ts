@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     const cards = await prisma.scrapingCard.findMany({
-    const cards = await prisma.scrapingCard.findMany({
       where: {
         status: "ACTIVE"
       },
