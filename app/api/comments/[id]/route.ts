@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    const commentId = id;
     const apiKey = req.headers.get("X-API-KEY");
     if (apiKey !== process.env.BOTS_API_KEY) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -18,7 +20,7 @@ export async function PATCH(
       return NextResponse.json({ error: "El estado es requerido" }, { status: 400 });
     }
 
-    const commentId = params.id;
+
 
     // Actualizar el estado del comentario
     const comment = await prisma.comment.update({
