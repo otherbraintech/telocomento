@@ -96,7 +96,7 @@ export default async function DetalleTarjetaPage({
               <p className="text-sm text-zinc-500 italic">No hay publicaciones aún.</p>
             ) : (
               <div className="space-y-3">
-                {tarjeta.publications.map(pub => (
+                {tarjeta.publications.map((pub: any) => (
                   <div key={pub.id} className="p-3 border border-zinc-800 rounded-md bg-zinc-900">
                     <div className="flex justify-between mb-1">
                       <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold
