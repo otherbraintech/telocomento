@@ -1,6 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,7 +25,13 @@ const routeMap: Record<string, string> = {
 
 export default function DynamicBreadcrumbs() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const pathSegments = pathname.split("/").filter((segment) => segment !== "")
+
+  // Si hay un keyword en la URL (ej. desde tarjeta → publicaciones), lo mostramos
+  const keyword = searchParams.get("keyword")
+  const tarjetaId = searchParams.get("tarjetaId")
+  const isPublicacionesFiltradas = pathname === "/dashboard/publicaciones" && !!tarjetaId && !!keyword
 
   return (
     <Breadcrumb>
@@ -39,7 +45,7 @@ export default function DynamicBreadcrumbs() {
         {pathSegments.map((segment, index) => {
           if (segment === "dashboard" && index === 0) return null
           
-          const isLast = index === pathSegments.length - 1
+          const isLast = index === pathSegments.length - 1 && !isPublicacionesFiltradas
           const href = `/${pathSegments.slice(0, index + 1).join("/")}`
           
           // Si el segmento parece un ID (cuid), mostrar "Detalle"
@@ -59,6 +65,16 @@ export default function DynamicBreadcrumbs() {
             </React.Fragment>
           )
         })}
+
+        {/* Breadcrumb extra: nombre de la tarjeta cuando se filtra */}
+        {isPublicacionesFiltradas && (
+          <React.Fragment>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{keyword}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </React.Fragment>
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   )

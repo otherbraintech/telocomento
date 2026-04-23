@@ -1,38 +1,77 @@
 import { prisma } from "@/lib/prisma";
 import ReviewFeed from "./review-feed";
+import { Badge } from "@/components/ui/badge";
 
 export default async function PublicacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tarjetaId?: string }>;
+  searchParams: Promise<{ tarjetaId?: string; keyword?: string }>;
 }) {
-  const { tarjetaId } = await searchParams;
+  const { tarjetaId, keyword } = await searchParams;
+
+  // Si viene un tarjetaId pero no keyword, lo buscamos en BD
+  let cardKeyword = keyword;
+  if (tarjetaId && !cardKeyword) {
+    const card = await prisma.scrapingCard.findUnique({
+      where: { id: tarjetaId },
+      select: { keyword: true },
+    });
+    cardKeyword = card?.keyword;
+  }
 
   const pendingPublications = await prisma.publication.findMany({
     where: {
       reviewStatus: "PENDING",
       ...(tarjetaId ? { scrapingCardId: tarjetaId } : {}),
     },
-    include: {
-      scrapingCard: true,
+    select: {
+      id: true,
+      sourceUrl: true,
+      imageUrl: true,
+      authorName: true,
+      content: true,
+      publishedAt: true,
+      scrapingCard: {
+        select: { keyword: true, context: true }
+      }
     },
     orderBy: {
       createdAt: "desc",
     },
   });
 
+  const pendingCount = pendingPublications.length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Revisión de Publicaciones</h1>
-        <p className="text-sm text-muted-foreground">
-          {tarjetaId 
-            ? "Revisando publicaciones filtradas por tarjeta." 
-            : "Aprueba o rechaza los posts encontrados por el scraper."}
-        </p>
+      <div className="flex justify-between items-end border-b pb-4">
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Revisión de Publicaciones
+              {cardKeyword && `: ${cardKeyword}`}
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            {tarjetaId
+              ? `Publicaciones pendientes de la tarjeta "${cardKeyword}".`
+              : "Aprueba o rechaza los posts encontrados por el scraper."}
+          </p>
+        </div>
+        
+        <div className="text-right">
+          <Badge variant="outline" className="px-3 py-1 border-primary/30 text-primary">
+            {pendingCount} Pendiente{pendingCount !== 1 ? 's' : ''}
+          </Badge>
+        </div>
       </div>
-      
-      <ReviewFeed initialPublications={pendingPublications} />
+
+      <ReviewFeed 
+        key={tarjetaId || "all"} 
+        initialPublications={pendingPublications} 
+      />
     </div>
   );
 }
+
+

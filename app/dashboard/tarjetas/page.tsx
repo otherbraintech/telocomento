@@ -82,7 +82,7 @@ export default async function TarjetasPage() {
               </CardContent>
               <div className="border-t p-4 flex gap-2">
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link href={`/dashboard/publicaciones?tarjetaId=${tarjeta.id}`}>Ver Publicaciones</Link>
+                  <Link href={`/dashboard/publicaciones?tarjetaId=${tarjeta.id}&keyword=${encodeURIComponent(tarjeta.keyword)}`}>Ver Publicaciones</Link>
                 </Button>
               </div>
             </Card>
