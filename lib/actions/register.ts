@@ -45,7 +45,8 @@ export async function registerUser(prevState: any, formData: FormData) {
         username,
         email,
         password: hashedPassword,
-        role: role as any
+        role: role as any,
+        status: userCount === 0 ? "ACTIVE" : "INACTIVE"
       }
     });
 

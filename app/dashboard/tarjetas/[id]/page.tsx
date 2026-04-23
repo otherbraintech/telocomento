@@ -36,22 +36,22 @@ export default async function DetalleTarjetaPage({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon" className="text-zinc-400 hover:text-white">
+          <Button asChild variant="ghost" size="icon">
             <Link href="/dashboard/tarjetas">
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">{tarjeta.keyword}</h1>
-            <p className="text-sm text-zinc-400">Detalle de la tarjeta de monitoreo</p>
+            <h1 className="text-2xl font-bold tracking-tight">{tarjeta.keyword}</h1>
+            <p className="text-sm text-muted-foreground">Detalle de la tarjeta de monitoreo</p>
           </div>
         </div>
 
         <form action={deleteTarjeta}>
-          <Button variant="destructive" type="submit" className="bg-red-950/50 text-red-500 hover:bg-red-900 hover:text-white border border-red-900">
+          <Button variant="destructive" type="submit">
             <Trash2 className="w-4 h-4 mr-2" />
             Eliminar Tarjeta
           </Button>
@@ -59,52 +59,53 @@ export default async function DetalleTarjetaPage({
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-zinc-950 border-zinc-800 text-white">
+        <Card className="border-border/50">
           <CardHeader>
             <CardTitle>Configuración</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Palabra Clave / Keyword</p>
+              <p className="text-xs text-muted-foreground mb-1">Palabra Clave / Keyword</p>
               <p className="font-medium">{tarjeta.keyword}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Contexto</p>
-              <p className="text-sm text-zinc-400">{tarjeta.context || "Sin contexto adicional"}</p>
+              <p className="text-xs text-muted-foreground mb-1">Contexto</p>
+              <p className="text-sm text-muted-foreground">{tarjeta.context || "Sin contexto adicional"}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Estado</p>
-              <Badge className={tarjeta.status === 'ACTIVE' ? 'bg-green-950 text-green-400' : 'bg-red-950 text-red-400'}>
+              <p className="text-xs text-muted-foreground mb-1">Estado</p>
+              <Badge variant={tarjeta.status === 'ACTIVE' ? 'outline' : 'destructive'}>
                 {tarjeta.status}
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-950 border-zinc-800 text-white flex flex-col">
+        <Card className="border-border/50 flex flex-col">
           <CardHeader>
             <CardTitle>Últimas Publicaciones</CardTitle>
-            <CardDescription className="text-zinc-400">Recientes hallazgos de esta tarjeta.</CardDescription>
+            <CardDescription>Recientes hallazgos de esta tarjeta.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto">
             {tarjeta.publications.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic">No hay publicaciones aún.</p>
+              <p className="text-sm text-muted-foreground italic">No hay publicaciones aún.</p>
             ) : (
               <div className="space-y-3">
                 {tarjeta.publications.map((pub: any) => (
-                  <div key={pub.id} className="p-3 border border-zinc-800 rounded-md bg-zinc-900">
+                  <div key={pub.id} className="p-3 border border-border/50 rounded-md bg-accent/5">
                     <div className="flex justify-between mb-1">
-                      <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold
-                        ${pub.reviewStatus === 'APPROVED' ? 'bg-green-950 text-green-400' : 
-                          pub.reviewStatus === 'REJECTED' ? 'bg-red-950 text-red-400' : 
-                          'bg-yellow-950 text-yellow-400'}`}>
+                      <Badge variant={
+                        pub.reviewStatus === 'APPROVED' ? 'default' : 
+                        pub.reviewStatus === 'REJECTED' ? 'destructive' : 
+                        'secondary'
+                      } className="text-[10px]">
                         {pub.reviewStatus}
-                      </span>
-                      <span className="text-[10px] text-zinc-500">
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
                         {pub.publishedAt.toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-300 line-clamp-2 mt-2">
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
                       {pub.content || "Sin contenido"}
                     </p>
                   </div>

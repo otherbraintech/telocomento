@@ -11,9 +11,7 @@ export default async function DashboardPage() {
     where: { userId: session?.user?.id }
   });
 
-  if (userCardsCount === 0) {
-    redirect("/dashboard/tarjetas/nueva");
-  }
+
 
   const activeCardsCount = await prisma.scrapingCard.count({
     where: { 

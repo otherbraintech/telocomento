@@ -6,8 +6,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { scrapingCardId, authorName, content, sourceUrl, imageUrl, publishedAt } = body;
 
-    if (!scrapingCardId || !sourceUrl) {
-      return NextResponse.json({ error: "Faltan datos requeridos (scrapingCardId, sourceUrl)" }, { status: 400 });
+    if (!scrapingCardId || !sourceUrl || !imageUrl) {
+      return NextResponse.json({ error: "Faltan datos requeridos (scrapingCardId, sourceUrl, imageUrl)" }, { status: 400 });
     }
 
     // Validar que la tarjeta existe
@@ -23,11 +23,10 @@ export async function POST(req: NextRequest) {
       data: {
         scrapingCardId,
         sourceUrl,
+        imageUrl,
         authorName: authorName || "Perfil de Facebook",
         content: content || "",
-        imageUrl: imageUrl || null,
         publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
-        sentiment: "NEUTRAL",
         reviewStatus: "PENDING"
       }
     });

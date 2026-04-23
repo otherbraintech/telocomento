@@ -41,7 +41,10 @@ export default function DynamicBreadcrumbs() {
           
           const isLast = index === pathSegments.length - 1
           const href = `/${pathSegments.slice(0, index + 1).join("/")}`
-          const label = routeMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
+          
+          // Si el segmento parece un ID (cuid), mostrar "Detalle"
+          const isCuid = segment.length > 20 && /^[a-z0-9]+$/.test(segment)
+          const label = isCuid ? "Detalle" : (routeMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1))
 
           return (
             <React.Fragment key={href}>

@@ -16,13 +16,13 @@ export default async function OrdenesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Órdenes y Comentarios</h1>
-        <p className="text-sm text-zinc-400">Seguimiento de las órdenes enviadas a la IA y estado de los bots.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Órdenes y Comentarios</h1>
+        <p className="text-sm text-muted-foreground">Seguimiento de las órdenes enviadas a la IA y estado de los bots.</p>
       </div>
 
       {orders.length === 0 ? (
-        <Card className="bg-zinc-950 border-zinc-800 border-dashed text-zinc-400">
-          <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+        <Card className="border-dashed border-border/50">
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
             <p>No tienes ninguna orden generada.</p>
             <p className="text-sm mt-2">Ve a la sección de Publicaciones para aprobar contenido y crear órdenes.</p>
           </CardContent>
@@ -30,33 +30,33 @@ export default async function OrdenesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {orders.map((order: any) => (
-            <Card key={order.id} className="bg-zinc-950 border-zinc-800 text-white flex flex-col">
-              <CardHeader className="pb-3 border-b border-zinc-900">
+            <Card key={order.id} className="border-border/50 flex flex-col">
+              <CardHeader className="pb-3 border-b">
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-base font-semibold">
                       {order.publication.scrapingCard.keyword}
                     </CardTitle>
-                    <p className="text-xs text-zinc-500 line-clamp-1 mt-1">
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
                       {order.publication.content}
                     </p>
                   </div>
-                  <Badge className={order.intent === 'POSITIVE' ? 'bg-green-950 text-green-400 border-green-900' : 'bg-red-950 text-red-400 border-red-900'}>
+                  <Badge variant={order.intent === 'POSITIVE' ? 'outline' : 'destructive'}>
                     {order.intent === 'POSITIVE' ? 'Apoyo (+)' : 'Crítica (-)'}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="pt-4 flex-1">
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-zinc-500">Estado:</span>
-                  <span className="font-medium text-white">{order.status}</span>
+                  <span className="text-muted-foreground">Estado:</span>
+                  <span className="font-medium">{order.status}</span>
                 </div>
                 <div className="flex justify-between text-sm mb-4">
-                  <span className="text-zinc-500">Comentarios Generados:</span>
-                  <span className="font-medium text-white">{order._count.comments}</span>
+                  <span className="text-muted-foreground">Comentarios Generados:</span>
+                  <span className="font-medium">{order._count.comments}</span>
                 </div>
                 {order.notes && (
-                  <div className="bg-zinc-900 p-3 rounded text-xs text-zinc-400 italic">
+                  <div className="bg-accent/10 p-3 rounded border border-border/50 text-xs text-muted-foreground italic">
                     " {order.notes} "
                   </div>
                 )}

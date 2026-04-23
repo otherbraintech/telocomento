@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function createTarjeta(prevState: any, formData: FormData) {
   const session = await auth();
@@ -41,6 +42,7 @@ export async function createTarjeta(prevState: any, formData: FormData) {
     return { error: "Ocurrió un error al crear la tarjeta" };
   }
 
+  revalidatePath("/dashboard", "layout");
   redirect("/dashboard/tarjetas");
 }
 

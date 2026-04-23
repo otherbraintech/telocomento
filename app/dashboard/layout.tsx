@@ -6,7 +6,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { prisma } from "@/lib/prisma";
 import DynamicBreadcrumbs from "@/components/dynamic-breadcrumbs"
+import { NoCardsDialog } from "@/components/no-cards-dialog"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -51,9 +53,14 @@ export default async function DashboardLayout({
     )
   }
 
+  const cardsCount = await prisma.scrapingCard.count({
+    where: { userId: session?.user?.id }
+  });
+
   return (
     <TooltipProvider>
       <SidebarProvider>
+        <NoCardsDialog count={cardsCount} />
         <AppSidebar user={session?.user} />
         <SidebarInset className="bg-background text-foreground transition-colors duration-300">
           <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b px-4">

@@ -15,11 +15,9 @@ import { useRouter } from "next/navigation";
 type PublicationWithCard = {
   id: string;
   sourceUrl: string;
-  postUrl: string | null;
+  imageUrl: string;
   authorName: string | null;
   content: string | null;
-  imageUrl: string | null;
-  sentiment: string;
   scrapingCard: {
     keyword: string;
     context: string | null;
@@ -91,7 +89,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
                 <Badge variant="outline">
                   {activePub.scrapingCard.keyword}
                 </Badge>
-                <a href={activePub.postUrl || activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <a href={activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
