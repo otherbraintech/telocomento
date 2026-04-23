@@ -43,18 +43,17 @@ model Session {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String?
-  username      String?    @unique
-  email         String?    @unique
-  emailVerified DateTime?  @map("email_verified")
-  password      String?
-  image         String?
-  role          Role       @default(USER)
-  status        UserStatus @default(ACTIVE)
-  cardLimit     Int        @default(3) @map("card_limit")
-  accounts      Account[]
-  sessions      Session[]
+  id        String     @id @default(cuid())
+  name      String?
+  username  String?    @unique
+  email     String?    @unique
+  password  String?
+  image     String?
+  role      Role       @default(USER)
+  status    UserStatus @default(INACTIVE)
+  cardLimit Int        @default(3) @map("card_limit")
+  accounts  Account[]
+  sessions  Session[]
 
   scrapingCards ScrapingCard[]
   orders        Order[]
@@ -63,15 +62,6 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
-}
-
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
 }
 
 enum Role {

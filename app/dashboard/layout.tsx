@@ -24,6 +24,39 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const isActive = (session?.user as any)?.status === "ACTIVE";
+
+  if (!isActive) {
+    return (
+      <TooltipProvider>
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-foreground p-4">
+          <div className="max-w-md w-full space-y-6 text-center">
+            <div className="mx-auto size-16 bg-muted rounded-full flex items-center justify-center">
+              <span className="text-2xl">⏳</span>
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold tracking-tight">Cuenta en revisión</h1>
+              <p className="text-muted-foreground">
+                Tu cuenta ha sido registrada con éxito pero aún no ha sido activada por un administrador. 
+                Por favor, espera a que validemos tu acceso.
+              </p>
+            </div>
+            <div className="pt-4 border-t border-border/50">
+              <form action={async () => {
+                "use server"
+                const { signOut } = await import("@/auth")
+                await signOut()
+              }}>
+                <button className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">
+                  Cerrar Sesión
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

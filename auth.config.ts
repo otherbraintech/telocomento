@@ -20,7 +20,8 @@ export const authConfig = {
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        token.role = (user as any).role;
+        token.status = (user as any).status;
         token.id = user.id;
       }
       return token;
@@ -28,6 +29,7 @@ export const authConfig = {
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as any;
+        (session.user as any).status = token.status;
         session.user.id = token.id as string;
       }
       return session;
