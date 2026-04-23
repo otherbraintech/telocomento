@@ -18,6 +18,16 @@ export async function createTarjeta(prevState: any, formData: FormData) {
   }
 
   try {
+    // Verificar límite de tarjetas
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { _count: { select: { scrapingCards: true } } }
+    });
+
+    if (user && user._count.scrapingCards >= user.cardLimit) {
+      return { error: `Has alcanzado el límite de ${user.cardLimit} tarjetas. Contacta al administrador para aumentar tu capacidad.` };
+    }
+
     await prisma.scrapingCard.create({
       data: {
         userId: session.user.id,

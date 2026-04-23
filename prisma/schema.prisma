@@ -43,14 +43,16 @@ model Session {
 }
 
 model User {
-  id       String    @id @default(cuid())
-  name     String?
-  username String?   @unique
-  email         String?   @unique
-  emailVerified DateTime? @map("email_verified")
+  id            String     @id @default(cuid())
+  name          String?
+  username      String?    @unique
+  email         String?    @unique
+  emailVerified DateTime?  @map("email_verified")
   password      String?
   image         String?
-  role          Role      @default(USER)
+  role          Role       @default(USER)
+  status        UserStatus @default(ACTIVE)
+  cardLimit     Int        @default(3) @map("card_limit")
   accounts      Account[]
   sessions      Session[]
 
@@ -75,6 +77,12 @@ model VerificationToken {
 enum Role {
   USER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
 // ------------------------------------------------------

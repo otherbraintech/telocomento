@@ -8,7 +8,8 @@ import {
   MessageSquareQuote,
   Users,
   Settings,
-  Bot
+  Bot,
+  ShoppingCart
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -51,6 +52,11 @@ const data = {
       title: "Órdenes & Comentarios",
       url: "/dashboard/ordenes",
       icon: <MessageSquareQuote className="size-4" />,
+    },
+    {
+      title: "Comprar Créditos",
+      url: "/dashboard/comprar",
+      icon: <ShoppingCart className="size-4" />,
     },
     {
       title: "Mi Perfil",

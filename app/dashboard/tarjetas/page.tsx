@@ -3,13 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { TarjetaStatusToggle } from "@/components/tarjeta-status-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
 export default async function TarjetasPage() {
   const session = await auth();
-  
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      _count: { select: { scrapingCards: true } }
+    }
+  });
+
   const tarjetas = await prisma.scrapingCard.findMany({
+    where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     include: {
       _count: {
@@ -18,15 +28,24 @@ export default async function TarjetasPage() {
     }
   });
 
+  const currentCount = user?._count.scrapingCards || 0;
+  const limit = user?.cardLimit || 0;
+  const remaining = Math.max(0, limit - currentCount);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tarjetas de Monitoreo</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">Tarjetas de Monitoreo</h1>
+            <Badge variant={remaining === 0 ? "destructive" : "secondary"}>
+              {currentCount} / {limit} Usadas
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">Gestiona las palabras clave que el scraper rastreará.</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/tarjetas/nueva">
+        <Button asChild disabled={remaining === 0}>
+          <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
             <Plus className="mr-2 h-4 w-4" />
             Nueva Tarjeta
           </Link>
