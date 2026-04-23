@@ -13,39 +13,39 @@ datasource db {
 // NEXTAUTH MODELS
 // ------------------------------------------------------
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String  @map("user_id")
-  type               String
-  provider           String
-  providerAccountId  String  @map("provider_account_id")
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
- 
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
- 
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique @map("session_token")
   userId       String   @map("user_id")
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@map("sessions")
 }
- 
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  username      String?   @unique
+  id       String    @id @default(cuid())
+  name     String?
+  username String?   @unique
   email         String?   @unique
   emailVerified DateTime? @map("email_verified")
   password      String?
@@ -53,9 +53,12 @@ model User {
   role          Role      @default(USER)
   accounts      Account[]
   sessions      Session[]
-  
+
   scrapingCards ScrapingCard[]
   orders        Order[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -64,7 +67,7 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
@@ -79,13 +82,13 @@ enum Role {
 // ------------------------------------------------------
 
 model ScrapingCard {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  keyword   String   // Palabra clave para la búsqueda en Facebook
-  context   String?  @db.Text // Contexto adicional para filtrar publicaciones relevantes
+  id        String     @id @default(cuid())
+  userId    String     @map("user_id")
+  keyword   String // Palabra clave para la búsqueda en Facebook
+  context   String?    @db.Text // Contexto adicional para filtrar publicaciones relevantes
   status    CardStatus @default(ACTIVE)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   publications Publication[]
@@ -99,15 +102,17 @@ enum CardStatus {
 }
 
 model Publication {
-  id             String    @id @default(cuid())
-  scrapingCardId String    @map("scraping_card_id")
-  sourceUrl      String    @map("source_url")
-  content        String?   @db.Text
-  publishedAt    DateTime  @map("published_at")
-  sentiment      Sentiment @default(NEUTRAL)
+  id             String       @id @default(cuid())
+  scrapingCardId String       @map("scraping_card_id")
+  sourceUrl      String       @map("source_url")
+  authorName     String?      @map("author_name")
+  content        String?      @db.Text
+  imageUrl       String?      @map("image_url")
+  publishedAt    DateTime     @map("published_at")
+  sentiment      Sentiment    @default(NEUTRAL)
   reviewStatus   ReviewStatus @default(PENDING)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   scrapingCard ScrapingCard @relation(fields: [scrapingCardId], references: [id], onDelete: Cascade)
   orders       Order[]
@@ -128,14 +133,14 @@ enum ReviewStatus {
 }
 
 model Order {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  publicationId String    @map("publication_id")
-  intent        Intent    // POSITIVE (apoyar) or NEGATIVE (atacar)
-  notes         String?   @db.Text
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  publicationId String      @map("publication_id")
+  intent        Intent // POSITIVE (apoyar) or NEGATIVE (atacar)
+  notes         String?     @db.Text
   status        OrderStatus @default(DRAFT)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
@@ -159,15 +164,15 @@ enum OrderStatus {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  orderId   String   @map("order_id")
-  content   String   @db.Text
-  status    CommentStatus @default(PENDING)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  commentedAt DateTime? @map("commented_at")
+  id          String        @id @default(cuid())
+  orderId     String        @map("order_id")
+  content     String        @db.Text
+  status      CommentStatus @default(PENDING)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  commentedAt DateTime?     @map("commented_at")
 
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }

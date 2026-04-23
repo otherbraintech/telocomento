@@ -23,11 +23,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const data = {
-  user: {
-    name: "Administrador",
-    email: "admin@telocomento.com",
-    avatar: "",
-  },
   teams: [
     {
       name: "TeloComento",
@@ -58,29 +53,46 @@ const data = {
       icon: <MessageSquareQuote className="size-4" />,
     },
     {
-      title: "Usuarios",
-      url: "/dashboard/usuarios",
-      icon: <Users className="size-4" />,
-    },
-    {
       title: "Mi Perfil",
       url: "/dashboard/perfil",
       icon: <Settings className="size-4" />,
     },
   ],
+  adminNav: [
+    {
+      title: "Gestión de Usuarios",
+      url: "/dashboard/usuarios",
+      icon: <Users className="size-4" />,
+    },
+    {
+      title: "Admin Publicaciones",
+      url: "/dashboard/admin/publicaciones",
+      icon: <Rss className="size-4" />,
+    },
+    {
+      title: "Admin Órdenes",
+      url: "/dashboard/admin/ordenes",
+      icon: <MessageSquareQuote className="size-4" />,
+    },
+  ]
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: { user: any } & React.ComponentProps<typeof Sidebar>) {
+  const isAdmin = user?.role === "ADMIN"
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} label="Plataforma" />
+        {isAdmin && (
+          <NavMain items={data.adminNav} label="Administración" />
+        )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user || { name: "Invitado", email: "" }} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

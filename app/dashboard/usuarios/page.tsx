@@ -2,11 +2,15 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { redirect } from "next/navigation";
 
 export default async function UsuariosPage() {
   const session = await auth();
   
-  // Solo los administradores deberían ver esta lista (lógica básica por ahora)
+  if (session?.user?.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
     select: {

@@ -15,11 +15,13 @@ import { useRouter } from "next/navigation";
 type PublicationWithCard = {
   id: string;
   sourceUrl: string;
+  authorName: string | null;
   content: string | null;
+  imageUrl: string | null;
   sentiment: string;
   scrapingCard: {
     keyword: string;
-    topic: string;
+    context: string | null;
   };
 };
 
@@ -36,10 +38,10 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
 
   if (publications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center border border-zinc-800 border-dashed rounded-lg bg-zinc-950">
-        <Bot className="w-12 h-12 text-zinc-700 mb-4" />
-        <h3 className="text-lg font-medium text-white mb-2">Todo al día</h3>
-        <p className="text-zinc-400">No hay nuevas publicaciones pendientes de revisión.</p>
+      <div className="flex flex-col items-center justify-center p-12 text-center border border-dashed rounded-lg bg-accent/5">
+        <Bot className="w-12 h-12 text-muted-foreground/30 mb-4" />
+        <h3 className="text-lg font-medium mb-2">Todo al día</h3>
+        <p className="text-muted-foreground">No hay nuevas publicaciones pendientes de revisión.</p>
       </div>
     );
   }
@@ -71,7 +73,6 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       nextPublication();
       setNotes("");
       setIntent("POSITIVE");
-      // Opcional: Redirigir a órdenes o mostrar toast
     } catch (e) {
       console.error(e);
     } finally {
@@ -83,28 +84,42 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
     <>
       <div className="flex flex-col items-center justify-center min-h-[500px]">
         {activePub && (
-          <Card className="w-full max-w-md bg-zinc-950 border-zinc-800 text-white shadow-2xl relative overflow-hidden transition-all duration-300">
-            <CardHeader className="pb-3 border-b border-zinc-900">
+          <Card className="w-full max-w-md border-border/50 shadow-2xl relative overflow-hidden transition-all duration-300">
+            <CardHeader className="pb-3 border-b">
               <div className="flex justify-between items-center mb-2">
-                <Badge variant="outline" className="bg-zinc-900 text-zinc-300 border-zinc-800">
+                <Badge variant="outline">
                   {activePub.scrapingCard.keyword}
                 </Badge>
-                <a href={activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-white transition-colors">
+                <a href={activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
-              <p className="text-xs text-zinc-500">Causa: {activePub.scrapingCard.topic}</p>
+              <div className="flex items-center gap-2">
+                <div className="size-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold">
+                  {activePub.authorName?.charAt(0) || "F"}
+                </div>
+                <p className="text-sm font-medium">{activePub.authorName || "Perfil de Facebook"}</p>
+              </div>
             </CardHeader>
-            <CardContent className="pt-6 min-h-[250px] flex items-center justify-center">
-              <p className="text-lg text-center leading-relaxed">
+            <CardContent className="pt-6 min-h-[300px] flex flex-col gap-4">
+              {activePub.imageUrl && (
+                <div className="w-full aspect-video rounded-md overflow-hidden bg-accent/20">
+                  <img 
+                    src={activePub.imageUrl} 
+                    alt="Miniatura de la publicación" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <p className="text-lg leading-relaxed">
                 {activePub.content || "Contenido multimedia o no detectado."}
               </p>
             </CardContent>
-            <CardFooter className="flex justify-center gap-6 pt-6 pb-8 border-t border-zinc-900">
+            <CardFooter className="flex justify-center gap-6 pt-6 pb-8 border-t">
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="w-16 h-16 rounded-full border-2 border-red-900 bg-red-950/30 text-red-500 hover:bg-red-900 hover:text-white transition-all hover:scale-110"
+                className="w-16 h-16 rounded-full border-2 border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all hover:scale-110"
                 onClick={handleReject}
                 disabled={isPending}
               >
@@ -113,7 +128,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="w-16 h-16 rounded-full border-2 border-green-900 bg-green-950/30 text-green-500 hover:bg-green-900 hover:text-white transition-all hover:scale-110"
+                className="w-16 h-16 rounded-full border-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-all hover:scale-110"
                 onClick={handleApproveClick}
                 disabled={isPending}
               >
@@ -125,10 +140,10 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-zinc-950 text-white border-zinc-800 sm:max-w-[425px]">
+        <DialogContent className="border-border/50 sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Aprobar y Crear Orden</DialogTitle>
-            <DialogDescription className="text-zinc-400">
+            <DialogDescription>
               Configura cómo debe responder la IA a esta publicación.
             </DialogDescription>
           </DialogHeader>
@@ -136,10 +151,10 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
             <div className="grid gap-2">
               <Label htmlFor="intent">Objetivo de los bots</Label>
               <Select value={intent} onValueChange={(v: "POSITIVE" | "NEGATIVE") => setIntent(v)}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-zinc-700">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecciona la intención" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                <SelectContent>
                   <SelectItem value="POSITIVE">Apoyar (+)</SelectItem>
                   <SelectItem value="NEGATIVE">Criticar / Atacar (-)</SelectItem>
                 </SelectContent>
@@ -150,21 +165,21 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
               <Textarea
                 id="notes"
                 placeholder="Ej. Mencionar que esto es una excelente iniciativa..."
-                className="bg-zinc-900 border-zinc-800 focus-visible:ring-zinc-700 text-white resize-none"
+                className="resize-none"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
-            <div className="bg-zinc-900 p-3 rounded-md border border-zinc-800">
-              <p className="text-xs text-zinc-400 flex items-center gap-2">
+            <div className="bg-accent/30 p-3 rounded-md border border-border/50">
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <Bot className="w-4 h-4" />
                 Se generarán comentarios únicos usando los bots disponibles.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="hover:bg-zinc-900 hover:text-white text-zinc-400">Cancelar</Button>
-            <Button onClick={submitOrder} disabled={isPending} className="bg-white text-black hover:bg-zinc-200">
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            <Button onClick={submitOrder} disabled={isPending}>
               {isPending ? "Procesando..." : "Confirmar Orden"}
             </Button>
           </DialogFooter>

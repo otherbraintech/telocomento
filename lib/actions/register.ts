@@ -34,6 +34,10 @@ export async function registerUser(prevState: any, formData: FormData) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Si es el primer usuario, lo hacemos ADMIN
+    const userCount = await prisma.user.count();
+    const role = userCount === 0 ? "ADMIN" : "USER";
+
     // Crear usuario
     await prisma.user.create({
       data: {
@@ -41,7 +45,7 @@ export async function registerUser(prevState: any, formData: FormData) {
         username,
         email,
         password: hashedPassword,
-        role: "USER"
+        role: role as any
       }
     });
 

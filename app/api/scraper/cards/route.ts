@@ -3,12 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
-    const apiKey = req.headers.get("X-API-KEY");
-    
-    if (apiKey !== process.env.SCRAPER_API_KEY) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
+    const cards = await prisma.scrapingCard.findMany({
     const cards = await prisma.scrapingCard.findMany({
       where: {
         status: "ACTIVE"
@@ -17,7 +12,8 @@ export async function GET(req: NextRequest) {
         id: true,
         keyword: true,
         context: true,
-        userId: true
+        userId: true,
+        status: true
       }
     });
 
