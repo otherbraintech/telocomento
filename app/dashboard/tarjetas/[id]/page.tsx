@@ -10,10 +10,11 @@ import { revalidatePath } from "next/cache";
 export default async function DetalleTarjetaPage({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params;
   const tarjeta = await prisma.scrapingCard.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       publications: {
         orderBy: { createdAt: "desc" },
@@ -29,7 +30,7 @@ export default async function DetalleTarjetaPage({
   // Server action to delete
   const deleteTarjeta = async () => {
     "use server";
-    await prisma.scrapingCard.delete({ where: { id: params.id } });
+    await prisma.scrapingCard.delete({ where: { id } });
     revalidatePath("/dashboard/tarjetas");
     redirect("/dashboard/tarjetas");
   };
@@ -64,24 +65,18 @@ export default async function DetalleTarjetaPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Causa / Tema</p>
-              <p className="font-medium">{tarjeta.topic}</p>
+              <p className="text-xs text-zinc-500 mb-1">Palabra Clave / Keyword</p>
+              <p className="font-medium">{tarjeta.keyword}</p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Contexto</p>
+              <p className="text-sm text-zinc-400">{tarjeta.context || "Sin contexto adicional"}</p>
             </div>
             <div>
               <p className="text-xs text-zinc-500 mb-1">Estado</p>
               <Badge className={tarjeta.status === 'ACTIVE' ? 'bg-green-950 text-green-400' : 'bg-red-950 text-red-400'}>
                 {tarjeta.status}
               </Badge>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 mb-1">Fuentes Monitoreadas</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {tarjeta.sources.map((source: any, idx: number) => (
-                  <Badge key={idx} variant="outline" className="border-zinc-800 bg-zinc-900">
-                    {source}
-                  </Badge>
-                ))}
-              </div>
             </div>
           </CardContent>
         </Card>
