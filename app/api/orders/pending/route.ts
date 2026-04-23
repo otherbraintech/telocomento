@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     // Marcar como IN_PROGRESS
     if (orders.length > 0) {
-      const orderIds = orders.map((o) => o.id);
+      const orderIds = orders.map((o: any) => o.id);
       await prisma.order.updateMany({
         where: { id: { in: orderIds } },
         data: { status: "IN_PROGRESS" }
@@ -41,10 +41,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Formatear respuesta según la documentación
-    const response = orders.map((order) => ({
+    const response = orders.map((order: any) => ({
       orderId: order.id,
       publicationUrl: order.publication.sourceUrl,
-      comments: order.comments.map((c) => ({
+      comments: order.comments.map((c: any) => ({
         id: c.id,
         content: c.content
       }))
