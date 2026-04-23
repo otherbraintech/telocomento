@@ -103,6 +103,7 @@ model Publication {
   id             String       @id @default(cuid())
   scrapingCardId String       @map("scraping_card_id")
   sourceUrl      String       @map("source_url")
+  postUrl        String?      @map("post_url")
   authorName     String?      @map("author_name")
   content        String?      @db.Text
   imageUrl       String?      @map("image_url")

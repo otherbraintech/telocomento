@@ -19,7 +19,7 @@ export default function NuevaTarjetaForm() {
           placeholder="Ej: El Deber"
           required
         />
-        <p className="text-xs text-muted-foreground">La palabra exacta o frase a buscar en las publicaciones.</p>
+        <p className="text-xs text-muted-foreground">La palabra o frase que usarías en el buscador de Facebook para encontrar publicaciones.</p>
       </div>
 
       <div className="space-y-2">

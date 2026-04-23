@@ -16,7 +16,7 @@ export default function NuevaTarjetaPage() {
           <CardHeader>
             <CardTitle>Detalles de la Tarjeta</CardTitle>
             <CardDescription>
-              Ingresa la palabra clave y las páginas a monitorear.
+              Ingresa la palabra clave que se usará para buscar en Facebook.
             </CardDescription>
           </CardHeader>
           <CardContent>

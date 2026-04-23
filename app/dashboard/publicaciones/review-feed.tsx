@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 type PublicationWithCard = {
   id: string;
   sourceUrl: string;
+  postUrl: string | null;
   authorName: string | null;
   content: string | null;
   imageUrl: string | null;
@@ -90,7 +91,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
                 <Badge variant="outline">
                   {activePub.scrapingCard.keyword}
                 </Badge>
-                <a href={activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <a href={activePub.postUrl || activePub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
@@ -108,6 +109,17 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
                     src={activePub.imageUrl} 
                     alt="Miniatura de la publicación" 
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const icon = document.createElement('div');
+                        icon.className = "flex flex-col items-center justify-center w-full h-full text-muted-foreground bg-muted/20";
+                        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 mb-2 opacity-20"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span class="text-[10px] opacity-50">Imagen no disponible (DNS Error)</span>';
+                        parent.appendChild(icon);
+                      }
+                    }}
                   />
                 </div>
               )}
