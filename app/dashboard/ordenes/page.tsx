@@ -29,7 +29,7 @@ export default async function OrdenesPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {orders.map((order) => (
+          {orders.map((order: any) => (
             <Card key={order.id} className="bg-zinc-950 border-zinc-800 text-white flex flex-col">
               <CardHeader className="pb-3 border-b border-zinc-900">
                 <div className="flex justify-between items-start">

@@ -76,7 +76,7 @@ export default async function DetalleTarjetaPage({
             <div>
               <p className="text-xs text-zinc-500 mb-1">Fuentes Monitoreadas</p>
               <div className="flex flex-wrap gap-2 mt-2">
-                {tarjeta.sources.map((source, idx) => (
+                {tarjeta.sources.map((source: any, idx: number) => (
                   <Badge key={idx} variant="outline" className="border-zinc-800 bg-zinc-900">
                     {source}
                   </Badge>

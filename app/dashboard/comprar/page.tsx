@@ -41,7 +41,7 @@ export default function ComprarPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {plans.map((plan) => (
+        {plans.map((plan: any) => (
           <Card key={plan.name} className={`relative flex flex-col transition-all hover:scale-[1.02] ${plan.color} ${plan.popular ? 'border-2' : 'border-border/50'}`}>
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-bold uppercase py-1 px-3 rounded-full">
@@ -61,7 +61,7 @@ export default function ComprarPage() {
             </CardHeader>
             <CardContent className="flex-1 space-y-4">
               <ul className="space-y-2.5 text-sm">
-                {plan.features.map((feature) => (
+                {plan.features.map((feature: any) => (
                   <li key={feature} className="flex items-center gap-2">
                     <Check className="size-4 text-green-500" />
                     <span>{feature}</span>

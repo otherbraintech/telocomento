@@ -63,7 +63,7 @@ export default async function TarjetasPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tarjetas.map((tarjeta) => (
+          {tarjetas.map((tarjeta: any) => (
             <Card key={tarjeta.id} className="border-border/50 shadow-sm flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg font-semibold flex justify-between items-start">
