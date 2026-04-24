@@ -1,16 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { rejectPublication, createOrderFromPublication } from "@/lib/actions/publications";
+import { useState, useEffect, useRef } from "react";
+import { rejectPublication, approvePublication } from "@/lib/actions/publications";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X, ExternalLink, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { toast } from "sonner";
 
 type PublicationWithCard = {
   id: string;
@@ -19,6 +16,7 @@ type PublicationWithCard = {
   authorName: string | null;
   content: string | null;
   publishedAt: Date;
+  reviewStatus: string;
   scrapingCard: {
     keyword: string;
     context: string | null;
@@ -28,84 +26,135 @@ type PublicationWithCard = {
 export default function ReviewFeed({ initialPublications }: { initialPublications: PublicationWithCard[] }) {
   const [publications, setPublications] = useState(initialPublications);
   const [activePub, setActivePub] = useState<PublicationWithCard | null>(publications[0] || null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [intent, setIntent] = useState<"POSITIVE" | "NEGATIVE">("POSITIVE");
-  const [notes, setNotes] = useState("");
+  const [particles, setParticles] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Umbral alto para evitar swipes accidentales
+  const SWIPE_THRESHOLD = 350;
 
   // Framer Motion values for drag
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-25, 25]);
-  const opacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
+  const rotate = useTransform(x, [-300, 300], [-20, 20]);
+  const cardOpacity = useTransform(x, [-500, -400, 0, 400, 500], [0.3, 1, 1, 1, 0.3]);
   
-  // Color overlays based on swipe direction
-  const approveOpacity = useTransform(x, [0, 150], [0, 0.5]);
-  const rejectOpacity = useTransform(x, [0, -150], [0, 0.5]);
+  // Color overlays - empiezan a aparecer después de 120px
+  const approveOpacity = useTransform(x, [0, 120, 350], [0, 0.15, 0.8]);
+  const rejectOpacity = useTransform(x, [0, -120, -350], [0, 0.15, 0.8]);
+
+  // Text visibility - solo aparece cuando se acerca al umbral
+  const approveTextOpacity = useTransform(x, [250, 350], [0, 1]);
+  const rejectTextOpacity = useTransform(x, [-250, -350], [0, 1]);
+  const approveTextScale = useTransform(x, [250, 350], [0.5, 1]);
+  const rejectTextScale = useTransform(x, [-250, -350], [0.5, 1]);
 
   useEffect(() => {
     setPublications(initialPublications);
     setActivePub(initialPublications[0] || null);
   }, [initialPublications]);
 
+  const triggerParticles = (color: string) => {
+    const newParticles = Array.from({ length: 15 }).map((_, i) => ({
+      id: Date.now() + i,
+      x: (Math.random() - 0.5) * 450,
+      y: (Math.random() - 0.5) * 450,
+      color
+    }));
+    setParticles(newParticles);
+    setTimeout(() => setParticles([]), 800);
+  };
+
   const nextPublication = () => {
     const updated = publications.filter(p => p.id !== activePub?.id);
     setPublications(updated);
     setActivePub(updated[0] || null);
-    x.set(0); // Reset drag position
+    setIsExiting(false);
+    x.set(0); 
   };
 
-  const handleReject = async () => {
-    if (!activePub || isPending) return;
+  // Anima la tarjeta volando hacia un lado y luego ejecuta la acción
+  const flyAndAct = async (direction: "left" | "right") => {
+    if (!activePub || isPending || isExiting) return;
     setIsPending(true);
-    await rejectPublication(activePub.id);
+    setIsExiting(true);
+
+    const flyTo = direction === "right" ? 1200 : -1200;
+
+    // Partículas y toast inmediato
+    if (direction === "right") {
+      triggerParticles("#22c55e");
+      toast.success("Publicación aprobada", { position: "bottom-right" });
+    } else {
+      triggerParticles("#ef4444");
+      toast.error("Publicación rechazada", { position: "bottom-right" });
+    }
+
+    // Animar la card volando hacia el lado
+    await animate(x, flyTo, { duration: 0.35, ease: "easeIn" });
+
+    // Ejecutar acción en servidor
+    try {
+      if (direction === "right") {
+        await approvePublication(activePub.id);
+      } else {
+        await rejectPublication(activePub.id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     nextPublication();
     setIsPending(false);
   };
 
-  const submitOrder = async () => {
-    if (!activePub) return;
-    setIsPending(true);
-    try {
-      await createOrderFromPublication(activePub.id, intent, notes);
-      setIsModalOpen(false);
-      nextPublication();
-      setNotes("");
-      setIntent("POSITIVE");
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsPending(false);
-    }
-  };
+  const handleReject = () => flyAndAct("left");
+  const handleApprove = () => flyAndAct("right");
 
   const handleDragEnd = (_: any, info: any) => {
-    if (info.offset.x > 150) {
-      // Swipe Right -> Approve
-      setIsModalOpen(true);
-    } else if (info.offset.x < -150) {
-      // Swipe Left -> Reject
-      handleReject();
+    if (isExiting) return;
+    // Si superó el umbral, vuela hacia el lado
+    if (info.offset.x > SWIPE_THRESHOLD) {
+      flyAndAct("right");
+    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+      flyAndAct("left");
+    } else {
+      // No alcanzó el umbral: regresar suavemente al centro
+      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
     }
   };
 
   // Transformaciones para los botones
-  const rejectScale = useTransform(x, [-150, 0], [1.3, 1]);
-  const approveScale = useTransform(x, [0, 150], [1, 1.3]);
-  const rejectBg = useTransform(x, [-150, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.05)"]);
-  const approveBg = useTransform(x, [0, 150], ["rgba(34 197 94, 0.05)", "rgb(34 197 94)"]);
-  const rejectColor = useTransform(x, [-150, 0], ["#ffffff", "#ef4444"]);
-  const approveColor = useTransform(x, [0, 150], ["#22c55e", "#ffffff"]);
+  const rejectScale = useTransform(x, [-350, 0], [1.3, 1]);
+  const approveScale = useTransform(x, [0, 350], [1, 1.3]);
+  const rejectBg = useTransform(x, [-350, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.05)"]);
+  const approveBg = useTransform(x, [0, 350], ["rgba(34 197 94, 0.05)", "rgb(34 197 94)"]);
+  const rejectColor = useTransform(x, [-350, 0], ["#ffffff", "#ef4444"]);
+  const approveColor = useTransform(x, [0, 350], ["#22c55e", "#ffffff"]);
 
-  // Helper para renderizar el contenido de una tarjeta (usado para la activa y las de fondo)
   const renderCardContent = (pub: typeof activePub, isBackground = false, onApprove?: () => void, onReject?: () => void) => {
     if (!pub) return null;
     return (
       <Card className={`w-full border-border shadow-2xl relative overflow-hidden bg-card select-none flex flex-col ${isBackground ? 'pointer-events-none' : ''}`}>
-        {/* Feedback Overlays (Solo para la activa) */}
         {!isBackground && (
           <>
-            <motion.div style={{ opacity: approveOpacity }} className="absolute inset-0 bg-green-500/25 z-50 pointer-events-none transition-colors" />
-            <motion.div style={{ opacity: rejectOpacity }} className="absolute inset-0 bg-red-500/25 z-50 pointer-events-none transition-colors" />
+            {/* Feedback Overlays */}
+            <motion.div style={{ opacity: approveOpacity }} className="absolute inset-0 bg-green-600/70 z-50 pointer-events-none flex items-center justify-center">
+              <motion.div 
+                style={{ opacity: approveTextOpacity, scale: approveTextScale, rotate: -15 }}
+                className="border-[12px] border-white px-8 py-3 rounded-2xl drop-shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+              >
+                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg">APROBADO</span>
+              </motion.div>
+            </motion.div>
+
+            <motion.div style={{ opacity: rejectOpacity }} className="absolute inset-0 bg-red-600/70 z-50 pointer-events-none flex items-center justify-center">
+              <motion.div 
+                style={{ opacity: rejectTextOpacity, scale: rejectTextScale, rotate: 15 }}
+                className="border-[12px] border-white px-8 py-3 rounded-2xl drop-shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+              >
+                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg">RECHAZADO</span>
+              </motion.div>
+            </motion.div>
           </>
         )}
         
@@ -184,91 +233,64 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   const nextPub = publications[1];
 
   return (
-    <>
-      <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-220px)] min-h-[400px] overflow-hidden -mt-2">
-        <div className="relative w-full max-w-md px-4 sm:px-0 h-full max-h-[550px]">
-          
-          {/* 1. Fondo de "Todo listo" */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-20 z-0">
-             <Bot className="w-10 h-10 text-muted-foreground/20 mb-3" />
-             <h3 className="text-base font-semibold mb-1">¡Todo listo!</h3>
-             <p className="text-muted-foreground text-[10px]">No hay más publicaciones pendientes.</p>
-          </div>
-
-          {/* 2. Segunda Tarjeta (Z-20) */}
-          {activePub && nextPub && (
-            <div className="absolute top-2 left-3 right-3 h-[97%] z-20" style={{ transform: 'scale(0.96)' }}>
-              {renderCardContent(nextPub, true)}
-            </div>
-          )}
-
-          {/* 3. Tarjeta Activa (Z-30) */}
-          <AnimatePresence mode="popLayout">
-            {activePub && (
-              <motion.div
-                key={activePub.id}
-                style={{ x, rotate, opacity }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                onDragEnd={handleDragEnd}
-                whileDrag={{ scale: 1.01, cursor: 'grabbing' }}
-                initial={{ scale: 0.98, opacity: 0, y: 5 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ 
-                  x: x.get() > 0 ? 1000 : -1000, 
-                  opacity: 0, 
-                  rotate: x.get() > 0 ? 15 : -15,
-                  transition: { duration: 0.3 } 
-                }}
-                className="absolute top-4 left-0 right-0 h-[calc(100%-12px)] z-30 cursor-grab active:cursor-grabbing px-1 sm:px-0"
-              >
-                {renderCardContent(activePub, false, () => setIsModalOpen(true), handleReject)}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+    <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-220px)] min-h-[400px] overflow-hidden -mt-2 relative">
+      {/* Particles Container */}
+      <div className="absolute inset-0 pointer-events-none z-[100] flex items-center justify-center">
+        <AnimatePresence>
+          {particles.map((particle) => (
+            <motion.div
+              key={particle.id}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{ 
+                x: particle.x, 
+                y: particle.y, 
+                opacity: 0, 
+                scale: 0,
+                rotate: Math.random() * 360
+              }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="absolute w-3 h-3 rounded-full"
+              style={{ backgroundColor: particle.color }}
+            />
+          ))}
+        </AnimatePresence>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="border-border/50 sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Aprobar y Crear Orden</DialogTitle>
-            <DialogDescription>
-              Configura cómo debe responder la IA a esta publicación.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="intent">Objetivo de los bots</Label>
-              <Select value={intent} onValueChange={(v: "POSITIVE" | "NEGATIVE") => setIntent(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona la intención" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="POSITIVE">Apoyar (+)</SelectItem>
-                  <SelectItem value="NEGATIVE">Criticar / Atacar (-)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Instrucciones para la IA (Opcional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Ej. Mencionar que esto es una excelente iniciativa..."
-                className="resize-none"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
+      <div className="relative w-full max-w-md px-4 sm:px-0 h-full max-h-[550px]">
+        {/* 1. Fondo de "Todo listo" */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-20 z-0">
+            <Bot className="w-10 h-10 text-muted-foreground/20 mb-3" />
+            <h3 className="text-base font-semibold mb-1">¡Todo listo!</h3>
+            <p className="text-muted-foreground text-[10px]">No hay más publicaciones pendientes.</p>
+        </div>
+
+        {/* 2. Segunda Tarjeta */}
+        {activePub && nextPub && (
+          <div className="absolute top-2 left-3 right-3 h-[97%] z-20" style={{ transform: 'scale(0.96)' }}>
+            {renderCardContent(nextPub, true)}
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button onClick={submitOrder} disabled={isPending}>
-              {isPending ? "Procesando..." : "Confirmar Orden"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+
+        {/* 3. Tarjeta Activa — sin dragConstraints para que no rebote */}
+        <AnimatePresence mode="popLayout">
+          {activePub && !isExiting && (
+            <motion.div
+              key={activePub.id}
+              style={{ x, rotate, opacity: cardOpacity }}
+              drag={isPending ? false : "x"}
+              dragElastic={0.7}
+              onDragEnd={handleDragEnd}
+              whileDrag={{ scale: 1.01, cursor: 'grabbing' }}
+              initial={{ scale: 0.98, opacity: 0, y: 5 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="absolute top-4 left-0 right-0 h-[calc(100%-12px)] z-30 cursor-grab active:cursor-grabbing px-1 sm:px-0"
+            >
+              {renderCardContent(activePub, false, handleApprove, handleReject)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

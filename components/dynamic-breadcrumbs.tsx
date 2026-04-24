@@ -14,8 +14,9 @@ import React from "react"
 const routeMap: Record<string, string> = {
   dashboard: "Inicio",
   tarjetas: "Tarjetas de Monitoreo",
-  publicaciones: "Revisión de Publicaciones",
-  ordenes: "Órdenes & Comentarios",
+  publicaciones: "Explorar Posts",
+  posts: "Gestión de Posts",
+  ordenes: "Mis Órdenes",
   comprar: "Comprar Créditos",
   perfil: "Mi Perfil",
   usuarios: "Gestión de Usuarios",

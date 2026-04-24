@@ -44,12 +44,17 @@ const data = {
       icon: <CreditCard className="size-4" />,
     },
     {
-      title: "Publicaciones",
+      title: "Explorar Posts",
       url: "/dashboard/publicaciones",
       icon: <Rss className="size-4" />,
     },
     {
-      title: "Órdenes & Comentarios",
+      title: "Gestión de Posts",
+      url: "/dashboard/posts",
+      icon: <LayoutDashboard className="size-4" />,
+    },
+    {
+      title: "Órdenes",
       url: "/dashboard/ordenes",
       icon: <MessageSquareQuote className="size-4" />,
     },
