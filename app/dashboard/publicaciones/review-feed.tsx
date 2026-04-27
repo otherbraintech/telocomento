@@ -17,10 +17,14 @@ type PublicationWithCard = {
   content: string | null;
   publishedAt: Date;
   reviewStatus: string;
-  scrapingCard: {
+  scrapingCard?: {
     keyword: string;
     context: string | null;
-  };
+  } | null;
+  user?: {
+    name: string | null;
+    bio: string | null;
+  } | null;
 };
 
 export default function ReviewFeed({ initialPublications }: { initialPublications: PublicationWithCard[] }) {
@@ -160,7 +164,9 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
         
         <CardHeader className="py-2.5 px-5 border-b shrink-0 bg-card">
           <div className="flex justify-between items-center mb-1.5">
-            <Badge variant="outline" className="max-w-[180px] truncate text-[11px] font-medium">{pub.scrapingCard.keyword}</Badge>
+            <Badge variant="outline" className="max-w-[180px] truncate text-[11px] font-medium">
+              {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || 'Personal'}`}
+            </Badge>
             {!isBackground && (
               <a href={pub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-1" onClick={(e) => e.stopPropagation()}>
                 <ExternalLink className="w-3.5 h-3.5" />

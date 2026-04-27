@@ -27,6 +27,9 @@ export default async function PublicacionesPage({
     include: {
       scrapingCard: {
         select: { keyword: true, context: true }
+      },
+      user: {
+        select: { name: true, bio: true }
       }
     },
     orderBy: {
