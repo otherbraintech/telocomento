@@ -9,7 +9,8 @@ import {
   Users,
   Settings,
   Bot,
-  ShoppingCart
+  ShoppingCart,
+  Smartphone
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -57,6 +58,11 @@ const data = {
       title: "Órdenes",
       url: "/dashboard/ordenes",
       icon: <MessageSquareQuote className="size-4" />,
+    },
+    {
+      title: "Dispositivos",
+      url: "/dashboard/dispositivos",
+      icon: <Smartphone className="size-4" />,
     },
     {
       title: "Comprar Créditos",

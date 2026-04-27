@@ -24,13 +24,7 @@ export default async function PublicacionesPage({
       reviewStatus: "PENDING",
       ...(tarjetaId ? { scrapingCardId: tarjetaId } : {}),
     },
-    select: {
-      id: true,
-      sourceUrl: true,
-      imageUrl: true,
-      authorName: true,
-      content: true,
-      publishedAt: true,
+    include: {
       scrapingCard: {
         select: { keyword: true, context: true }
       }

@@ -23,6 +23,7 @@ export default async function UsuariosPage() {
       role: true,
       status: true,
       cardLimit: true,
+      isRequestingTickets: true,
       createdAt: true,
     }
   });
@@ -47,10 +48,9 @@ export default async function UsuariosPage() {
               <thead className="[&_tr]:border-b">
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Usuario</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Email</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-center">Tickets</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Rol</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Estado</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-center">Límite</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
@@ -59,11 +59,20 @@ export default async function UsuariosPage() {
                   <tr key={user.id} className="border-b transition-colors hover:bg-muted/50">
                     <td className="p-4 align-middle">
                       <div className="flex flex-col">
-                        <span className="font-medium">{user.name}</span>
-                        <span className="text-xs text-muted-foreground">@{user.username}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{user.name}</span>
+                          {user.isRequestingTickets && (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] h-4 px-1 animate-pulse">
+                              SOLICITANDO
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </td>
-                    <td className="p-4 align-middle">{user.email}</td>
+                    <td className="p-4 align-middle text-center">
+                      <span className="font-mono font-bold text-lg">{user.cardLimit}</span>
+                    </td>
                     <td className="p-4 align-middle">
                       <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
                         {user.role}
@@ -73,9 +82,6 @@ export default async function UsuariosPage() {
                       <Badge variant={user.status === "ACTIVE" ? "outline" : "destructive"} className={user.status === "ACTIVE" ? "border-green-500 text-green-500" : ""}>
                         {user.status}
                       </Badge>
-                    </td>
-                    <td className="p-4 align-middle text-center font-mono">
-                      {user.cardLimit}
                     </td>
                     <td className="p-4 align-middle">
                       <UserManagementActions user={user} />

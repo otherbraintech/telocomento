@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { prisma } from "@/lib/prisma";
 import DynamicBreadcrumbs from "@/components/dynamic-breadcrumbs"
 import { NoCardsDialog } from "@/components/no-cards-dialog"
+import { ProfileSetupDialog } from "@/components/profile-setup-dialog"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -53,13 +54,30 @@ export default async function DashboardLayout({
     )
   }
 
-  const cardsCount = await prisma.scrapingCard.count({
-    where: { userId: session?.user?.id }
+  const user = await prisma.user.findUnique({
+    where: { id: session?.user?.id },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      bio: true,
+      _count: {
+        select: { scrapingCards: true }
+      }
+    }
   });
+
+  const cardsCount = user?._count.scrapingCards || 0;
 
   return (
     <TooltipProvider>
       <SidebarProvider>
+        <ProfileSetupDialog user={{
+          id: user?.id || "",
+          name: user?.name || null,
+          username: user?.username || null,
+          bio: user?.bio || null
+        }} />
         <NoCardsDialog count={cardsCount} />
         <AppSidebar user={session?.user} />
         <SidebarInset className="bg-background text-foreground transition-colors duration-300">

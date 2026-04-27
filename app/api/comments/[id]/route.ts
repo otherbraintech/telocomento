@@ -14,13 +14,11 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { status, botId } = body;
+    const { status } = body;
 
     if (!status) {
       return NextResponse.json({ error: "El estado es requerido" }, { status: 400 });
     }
-
-
 
     // Actualizar el estado del comentario
     const comment = await prisma.comment.update({
@@ -31,11 +29,30 @@ export async function PATCH(
       }
     });
 
+    // Si fue publicado, liberar el dispositivo asignado
+    if (status === "PUBLISHED" && comment.deviceId) {
+      // Verificar si el dispositivo tiene más comentarios pendientes en otras órdenes
+      const pendingForDevice = await prisma.comment.count({
+        where: {
+          deviceId: comment.deviceId,
+          status: "PENDING",
+          id: { not: commentId },
+        },
+      });
+
+      if (pendingForDevice === 0) {
+        await prisma.device.update({
+          where: { id: comment.deviceId },
+          data: { status: "LIBRE" },
+        });
+      }
+    }
+
     // Validar si la orden ya completó todos sus comentarios
     const pendingCommentsCount = await prisma.comment.count({
       where: {
         orderId: comment.orderId,
-        status: "PENDING"
+        status: { in: ["PENDING", "SENT"] }
       }
     });
 

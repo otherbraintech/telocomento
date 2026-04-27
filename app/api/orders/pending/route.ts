@@ -6,14 +6,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const typeQuery = searchParams.get("type"); // POSITIVE o NEGATIVE
 
-    // Idealmente usar autenticación con API KEY para los bots
     const apiKey = req.headers.get("X-API-KEY");
     if (apiKey !== process.env.BOTS_API_KEY) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const whereClause: any = {
-      status: "ACTIVATED", // Solo ordenes que ya estén listas para ejecutarse
+    const whereClause: Record<string, unknown> = {
+      status: "ACTIVATED",
     };
 
     if (typeQuery === "POSITIVE" || typeQuery === "NEGATIVE") {
@@ -25,28 +24,44 @@ export async function GET(req: NextRequest) {
       include: {
         publication: true,
         comments: {
-          where: { status: "PENDING" } // Solo enviar comentarios no publicados
+          where: { status: "PENDING" },
+          include: { device: true },
         }
       },
-      take: 10 // Limitar cuántas se envían a los bots por vez
+      take: 10
     });
 
     // Marcar como IN_PROGRESS
     if (orders.length > 0) {
-      const orderIds = orders.map((o: any) => o.id);
+      const orderIds = orders.map((o) => o.id);
       await prisma.order.updateMany({
         where: { id: { in: orderIds } },
         data: { status: "IN_PROGRESS" }
       });
+
+      // Marcar dispositivos como OCUPADO
+      const deviceIds = orders
+        .flatMap((o) => o.comments)
+        .map((c) => c.deviceId)
+        .filter((id): id is string => id !== null);
+
+      if (deviceIds.length > 0) {
+        await prisma.device.updateMany({
+          where: { id: { in: deviceIds } },
+          data: { status: "OCUPADO" },
+        });
+      }
     }
 
-    // Formatear respuesta según la documentación
-    const response = orders.map((order: any) => ({
+    // Formatear respuesta incluyendo info del dispositivo
+    const response = orders.map((order) => ({
       orderId: order.id,
       publicationUrl: order.publication.sourceUrl,
-      comments: order.comments.map((c: any) => ({
+      comments: order.comments.map((c) => ({
         id: c.id,
-        content: c.content
+        content: c.content,
+        deviceSerial: c.device?.serial || null,
+        deviceAlias: c.device?.alias || null,
       }))
     }));
 

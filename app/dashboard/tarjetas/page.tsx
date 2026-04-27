@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { RequestTicketsButton } from "@/components/request-tickets-button";
 
 export default async function TarjetasPage() {
   const session = await auth();
@@ -13,7 +14,9 @@ export default async function TarjetasPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
+    select: {
+      cardLimit: true,
+      isRequestingTickets: true,
       _count: { select: { scrapingCards: true } }
     }
   });
@@ -44,12 +47,17 @@ export default async function TarjetasPage() {
           </div>
           <p className="text-sm text-muted-foreground">Gestiona las palabras clave que el scraper rastreará.</p>
         </div>
-        <Button asChild disabled={remaining === 0}>
-          <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Tarjeta
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          {remaining === 0 && (
+            <RequestTicketsButton isAlreadyRequesting={user?.isRequestingTickets || false} />
+          )}
+          <Button asChild disabled={remaining === 0}>
+            <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Tarjeta
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {tarjetas.length === 0 ? (

@@ -49,13 +49,16 @@ model User {
   email     String?    @unique
   password  String?
   image     String?
-  role      Role       @default(USER)
-  status    UserStatus @default(INACTIVE)
-  cardLimit Int        @default(3) @map("card_limit")
-  accounts  Account[]
-  sessions  Session[]
+  bio                 String?    @db.Text
+  role                Role       @default(USER)
+  status              UserStatus @default(INACTIVE)
+  cardLimit           Int        @default(0) @map("card_limit")
+  isRequestingTickets Boolean    @default(false) @map("is_requesting_tickets")
+  accounts            Account[]
+  sessions            Session[]
 
   scrapingCards ScrapingCard[]
+  publications  Publication[]
   orders        Order[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -101,7 +104,8 @@ enum CardStatus {
 
 model Publication {
   id             String       @id @default(cuid())
-  scrapingCardId String       @map("scraping_card_id")
+  scrapingCardId String?      @map("scraping_card_id")
+  userId         String?      @map("user_id")
   sourceUrl      String       @map("source_url")
   authorName     String?      @map("author_name")
   content        String?      @db.Text
@@ -111,13 +115,12 @@ model Publication {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  scrapingCard ScrapingCard @relation(fields: [scrapingCardId], references: [id], onDelete: Cascade)
+  scrapingCard ScrapingCard? @relation(fields: [scrapingCardId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders       Order[]
 
   @@map("publications")
 }
-
-
 
 enum ReviewStatus {
   PENDING
@@ -161,13 +164,15 @@ enum OrderStatus {
 model Comment {
   id          String        @id @default(cuid())
   orderId     String        @map("order_id")
+  deviceId    String?       @map("device_id")
   content     String        @db.Text
   status      CommentStatus @default(PENDING)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
   commentedAt DateTime?     @map("commented_at")
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order  Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id])
 
   @@map("comments")
 }
@@ -176,5 +181,48 @@ enum CommentStatus {
   PENDING
   SENT
   PUBLISHED
+  ERROR
+}
+
+// ------------------------------------------------------
+// DISPOSITIVOS / BOTS
+// ------------------------------------------------------
+
+model Device {
+  id        String       @id @default(cuid())
+  serial    String       @unique
+  model     String?
+  alias     String?
+  status    DeviceStatus @default(SIN_CUENTA)
+  triggerId String?      @map("trigger_id")
+
+  socialAccounts DeviceSocialAccount[]
+  comments       Comment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("devices")
+}
+
+model DeviceSocialAccount {
+  id               String  @id @default(cuid())
+  deviceId         String  @map("device_id")
+  redSocial        String  @map("red_social")
+  user             String?
+  correo           String?
+  telefonoAsociado String? @map("telefono_asociado")
+  estadoCuenta     String  @default("active") @map("estado_cuenta")
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@map("device_social_accounts")
+}
+
+enum DeviceStatus {
+  LIBRE
+  OCUPADO
+  SIN_CUENTA
+  OFFLINE
   ERROR
 }

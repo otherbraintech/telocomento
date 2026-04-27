@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import { Edit, Save, X, Lock, Check } from "lucide-react"
 import { updateProfile, updatePassword } from "@/lib/actions/profile"
 import { toast } from "sonner"
@@ -21,7 +22,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
   const [formData, setFormData] = useState({
     name: user?.name || "",
-    username: user?.username || ""
+    username: user?.username || "",
+    bio: user?.bio || ""
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -100,6 +102,20 @@ export function ProfileForm({ user }: ProfileFormProps) {
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               disabled={!isEditing || isLoading}
             />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="bio">Biografía</Label>
+            <Textarea
+              id="bio"
+              value={formData.bio}
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              disabled={!isEditing || isLoading}
+              placeholder="Cuéntanos un poco sobre ti para el scraping personalizado..."
+              className="min-h-[100px] resize-none"
+            />
+            <p className="text-[10px] text-muted-foreground italic">
+              Esta información será usada por nuestro scraper para encontrar contenido relevante en Facebook.
+            </p>
           </div>
           <div className="grid gap-2">
             <Label>Correo Electrónico</Label>
