@@ -13,13 +13,14 @@ export default async function PostsGestionPage() {
       reviewStatus: {
         in: ["APPROVED", "REJECTED"]
       },
-      // Filtrar por las tarjetas del usuario
-      scrapingCard: {
-        userId: session.user.id
-      }
+      OR: [
+        { userId: session.user.id },
+        { scrapingCard: { userId: session.user.id } }
+      ]
     },
     include: {
       scrapingCard: true,
+      user: { select: { name: true } },
       orders: {
         select: { id: true, status: true }
       }

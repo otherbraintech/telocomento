@@ -8,6 +8,7 @@ import { Check, X, ExternalLink, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { toast } from "sonner";
+import Link from "next/link";
 
 type PublicationWithCard = {
   id: string;
@@ -264,11 +265,20 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       </div>
 
       <div className="relative w-full max-w-md px-4 sm:px-0 h-full max-h-[550px]">
-        {/* 1. Fondo de "Todo listo" */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-20 z-0">
-            <Bot className="w-10 h-10 text-muted-foreground/20 mb-3" />
-            <h3 className="text-base font-semibold mb-1">¡Todo listo!</h3>
-            <p className="text-muted-foreground text-[10px]">No hay más publicaciones pendientes.</p>
+        {/* 1. Fondo de "Todo listo" - Mejorado */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-0">
+            <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+              <Bot className="w-10 h-10 text-primary animate-bounce" />
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-foreground">¡Todo al día!</h3>
+            <p className="text-muted-foreground text-sm max-w-[250px] mb-8">
+              No tienes publicaciones pendientes de revisión en este momento.
+            </p>
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/dashboard/tarjetas">
+                Ver mis tarjetas
+              </Link>
+            </Button>
         </div>
 
         {/* 2. Segunda Tarjeta */}

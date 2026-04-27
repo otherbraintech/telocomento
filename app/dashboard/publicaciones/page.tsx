@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import ReviewFeed from "./review-feed";
 import { Badge } from "@/components/ui/badge";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export default async function PublicacionesPage({
   searchParams,
@@ -19,9 +21,16 @@ export default async function PublicacionesPage({
     cardKeyword = card?.keyword;
   }
 
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
   const pendingPublications = await prisma.publication.findMany({
     where: {
       reviewStatus: "PENDING",
+      OR: [
+        { userId: session.user.id },
+        { scrapingCard: { userId: session.user.id } }
+      ],
       ...(tarjetaId ? { scrapingCardId: tarjetaId } : {}),
     },
     include: {

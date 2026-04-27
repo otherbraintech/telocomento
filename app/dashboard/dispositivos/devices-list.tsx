@@ -358,12 +358,19 @@ export default function DevicesList({ initialDevices }: { initialDevices: Device
                       <TableCell>
                         {device.socialAccounts.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
-                            {device.socialAccounts.map((sa) => (
-                              <Badge key={sa.id} variant="outline" className="text-[10px] h-5 gap-1">
-                                <UserCircle className="size-3" />
-                                {sa.user || sa.redSocial}
-                              </Badge>
-                            ))}
+                            {device.socialAccounts.map((sa) => {
+                              const isWhatsapp = sa.redSocial.toLowerCase().includes("whatsapp");
+                              const displayName = isWhatsapp 
+                                ? (sa.telefonoAsociado || sa.user) 
+                                : (sa.user || sa.redSocial);
+                                
+                              return (
+                                <Badge key={sa.id} variant="outline" className="text-[10px] h-5 gap-1">
+                                  <UserCircle className="size-3" />
+                                  {displayName}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
@@ -373,7 +380,7 @@ export default function DevicesList({ initialDevices }: { initialDevices: Device
                         {device.triggerId || "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="ghost"

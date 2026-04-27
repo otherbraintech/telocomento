@@ -13,20 +13,20 @@ import {
 } from "@/components/ui/alert-dialog"
 import { CreditCard } from "lucide-react"
 
-export function NoCardsDialog({ count }: { count: number }) {
+export function NoCardsDialog({ count, limit }: { count: number, limit: number }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
   useEffect(() => {
-    // Solo mostrar si el conteo es 0 y no estamos ya en la página de creación o perfil
+    // Solo mostrar si el conteo es 0, el límite es mayor a 0 y no estamos ya en la página de creación o perfil
     const isExemptedPage = pathname === "/dashboard/tarjetas/nueva" || pathname === "/dashboard/perfil"
-    if (count === 0 && !isExemptedPage) {
+    if (count === 0 && limit > 0 && !isExemptedPage) {
       setOpen(true)
     } else {
       setOpen(false)
     }
-  }, [count, pathname])
+  }, [count, limit, pathname])
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

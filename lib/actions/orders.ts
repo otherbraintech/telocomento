@@ -224,3 +224,65 @@ export async function deleteComment(commentId: string) {
   await prisma.comment.delete({ where: { id: commentId } });
   revalidatePath(`/dashboard/ordenes/${comment.orderId}/comentarios`);
 }
+export async function autoAssignDevicesToOrder(orderId: string) {
+  // 0. Intentar sincronizar dispositivos primero para ver si hay nuevos libres
+  try {
+    await syncDevices();
+  } catch (e) {
+    console.warn("No se pudo sincronizar dispositivos antes de asignar:", e);
+  }
+
+  // 1. Obtener comentarios sin bot de esta orden
+  const orphanComments = await prisma.comment.findMany({
+    where: { 
+      orderId,
+      deviceId: null 
+    }
+  });
+
+  if (orphanComments.length === 0) return { success: true, message: "Todos los comentarios ya tienen bot." };
+
+  // 2. Obtener dispositivos disponibles (libres u ocupados) que tengan cuenta social
+  const availableDevices = await prisma.device.findMany({
+    where: { 
+      status: { in: ["LIBRE", "OCUPADO"] },
+      socialAccounts: { some: {} }
+    },
+    take: orphanComments.length
+  });
+
+  if (availableDevices.length === 0) {
+    throw new Error("No hay bots registrados con cuenta social. Registra una cuenta en la sección de dispositivos primero.");
+  }
+
+  // 3. Asignar secuencialmente
+  for (let i = 0; i < availableDevices.length; i++) {
+    const commentId = orphanComments[i].id;
+    const deviceId = availableDevices[i].id;
+
+    await prisma.comment.update({
+      where: { id: commentId },
+      data: { deviceId }
+    });
+
+    // Marcar como ocupado
+    await prisma.device.update({
+      where: { id: deviceId },
+      data: { status: "OCUPADO" }
+    });
+  }
+
+  revalidatePath(`/dashboard/ordenes/${orderId}/comentarios`);
+  return { 
+    success: true, 
+    assignedCount: availableDevices.length 
+  };
+}
+
+export async function updateOrderNotes(orderId: string, notes: string) {
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { notes }
+  });
+  revalidatePath(`/dashboard/ordenes/${orderId}/comentarios`);
+}

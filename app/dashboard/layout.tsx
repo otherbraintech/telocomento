@@ -61,6 +61,7 @@ export default async function DashboardLayout({
       name: true,
       username: true,
       bio: true,
+      cardLimit: true,
       _count: {
         select: { scrapingCards: true }
       }
@@ -68,6 +69,7 @@ export default async function DashboardLayout({
   });
 
   const cardsCount = user?._count.scrapingCards || 0;
+  const cardLimit = user?.cardLimit || 0;
 
   return (
     <TooltipProvider>
@@ -78,7 +80,7 @@ export default async function DashboardLayout({
           username: user?.username || null,
           bio: user?.bio || null
         }} />
-        <NoCardsDialog count={cardsCount} />
+        <NoCardsDialog count={cardsCount} limit={cardLimit} />
         <AppSidebar user={session?.user} />
         <SidebarInset className="bg-background text-foreground transition-colors duration-300">
           <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b px-4">

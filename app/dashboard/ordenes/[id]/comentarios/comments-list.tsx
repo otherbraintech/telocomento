@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,14 +47,18 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import {
   regenerateComment,
   regenerateMultipleComments,
   editComment,
   deleteComment,
+  autoAssignDevicesToOrder,
+  updateOrderNotes,
 } from "@/lib/actions/orders";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CommentItem {
   id: string;
@@ -68,6 +72,10 @@ interface CommentItem {
     alias: string | null;
     serial: string;
     model: string | null;
+    socialAccounts?: {
+      user: string | null;
+      redSocial: string;
+    }[];
   } | null;
 }
 
@@ -128,6 +136,41 @@ export default function CommentsList({ order }: { order: OrderData }) {
   // Eliminar
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Asignación de bots
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  // Edición de notas de la orden
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [newNotes, setNewNotes] = useState(order.notes || "");
+
+  const handleUpdateNotes = async () => {
+    const toastId = toast.loading("Actualizando instrucciones de la orden...");
+    try {
+      await updateOrderNotes(order.id, newNotes);
+      toast.success("Instrucciones actualizadas", { id: toastId });
+      setEditNotesOpen(false);
+      window.location.reload();
+    } catch (e) {
+      toast.error("Error al actualizar instrucciones", { id: toastId });
+    }
+  };
+
+  const handleAutoAssign = async () => {
+    const toastId = toast.loading("Sincronizando y vinculando bots libres...");
+    setIsAssigning(true);
+    try {
+      const res = await autoAssignDevicesToOrder(order.id);
+      if (res.success) {
+        toast.success(`Se han vinculado ${res.assignedCount} bots nuevos.`, { id: toastId });
+        window.location.reload();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Error al vincular bots", { id: toastId });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -146,13 +189,14 @@ export default function CommentsList({ order }: { order: OrderData }) {
   };
 
   const handleRegenerate = async (id: string) => {
+    const toastId = toast.loading("Regenerando comentario con IA...");
     setLoadingId(id);
     try {
       await regenerateComment(id);
-      toast.success("Comentario regenerado");
+      toast.success("Comentario regenerado", { id: toastId });
       window.location.reload();
     } catch (e) {
-      toast.error("Error al regenerar comentario");
+      toast.error("Error al regenerar comentario", { id: toastId });
     } finally {
       setLoadingId(null);
     }
@@ -160,14 +204,15 @@ export default function CommentsList({ order }: { order: OrderData }) {
 
   const handleBulkRegenerate = async () => {
     if (selected.size === 0) return;
+    const toastId = toast.loading(`Regenerando ${selected.size} comentarios con IA...`);
     setBulkLoading(true);
     try {
       await regenerateMultipleComments(Array.from(selected));
-      toast.success(`${selected.size} comentarios regenerados`);
+      toast.success(`${selected.size} comentarios regenerados`, { id: toastId });
       setSelected(new Set());
       window.location.reload();
     } catch (e) {
-      toast.error("Error al regenerar comentarios");
+      toast.error("Error al regenerar comentarios", { id: toastId });
     } finally {
       setBulkLoading(false);
     }
@@ -181,23 +226,25 @@ export default function CommentsList({ order }: { order: OrderData }) {
 
   const handleEdit = async () => {
     if (!editingComment) return;
+    const toastId = toast.loading("Guardando cambios...");
     try {
       await editComment(editingComment.id, editContent);
-      toast.success("Comentario editado");
+      toast.success("Comentario editado", { id: toastId });
       setComments((prev) =>
         prev.map((c) => (c.id === editingComment.id ? { ...c, content: editContent } : c))
       );
       setEditOpen(false);
     } catch (e) {
-      toast.error("Error al editar comentario");
+      toast.error("Error al editar comentario", { id: toastId });
     }
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const toastId = toast.loading("Eliminando comentario...");
     try {
       await deleteComment(deleteId);
-      toast.success("Comentario eliminado");
+      toast.success("Comentario eliminado", { id: toastId });
       setComments((prev) => prev.filter((c) => c.id !== deleteId));
       setSelected((prev) => {
         const next = new Set(prev);
@@ -206,7 +253,7 @@ export default function CommentsList({ order }: { order: OrderData }) {
       });
       setDeleteId(null);
     } catch (e) {
-      toast.error("Error al eliminar comentario");
+      toast.error("Error al eliminar comentario", { id: toastId });
     }
   };
 
@@ -252,187 +299,268 @@ export default function CommentsList({ order }: { order: OrderData }) {
 
       {/* Contexto de la orden */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {order.notes && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-1.5 mb-2">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
                 <Zap className="size-3.5 text-primary" />
                 <span className="text-xs font-semibold text-primary uppercase tracking-wider">Instrucción IA</span>
               </div>
-              <p className="text-sm text-foreground/80">{order.notes}</p>
-            </CardContent>
-          </Card>
-        )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 h-7 w-7 text-primary hover:bg-primary/10"
+                onClick={() => setEditNotesOpen(true)}
+              >
+                <Pencil className="size-3.5" />
+              </Button>
+            </div>
+            <ScrollArea className="h-[80px]">
+              <p className="text-sm text-foreground/80 italic leading-relaxed">
+                &ldquo;{order.notes || "Sin instrucciones específicas"}&rdquo;
+              </p>
+            </ScrollArea>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-2">Publicación original</p>
-            <p className="text-sm text-foreground/80 italic line-clamp-4">
-              &ldquo;{order.publication.content || "Sin contenido"}&rdquo;
-            </p>
+            <ScrollArea className="h-[80px]">
+              <p className="text-sm text-foreground/80">
+                &ldquo;{order.publication.content || "Sin contenido"}&rdquo;
+              </p>
+            </ScrollArea>
             {order.publication.authorName && (
-              <p className="text-xs text-muted-foreground mt-2">— {order.publication.authorName}</p>
+              <p className="text-xs text-muted-foreground mt-2 font-medium">— {order.publication.authorName}</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Acciones batch */}
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
-          <span className="text-sm font-medium">{selected.size} seleccionados</span>
+      {/* Acciones Globales */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-muted/30 p-4 rounded-xl border border-border/50">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="select-all"
+            checked={selected.size === comments.length && comments.length > 0}
+            onCheckedChange={toggleAll}
+          />
+          <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+            Seleccionar todos ({comments.length})
+          </label>
+        </div>
+        
+        <div className="flex gap-2 w-full sm:w-auto">
+          {selected.size > 0 ? (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleBulkRegenerate}
+              disabled={bulkLoading}
+              className="flex-1 sm:flex-initial gap-1.5 shadow-sm"
+            >
+              <RefreshCw className={`size-3.5 ${bulkLoading ? "animate-spin" : ""}`} />
+              Regenerar Seleccionados ({selected.size})
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const allIds = comments.map(c => c.id);
+                setSelected(new Set(allIds));
+                handleBulkRegenerate();
+              }}
+              disabled={bulkLoading || comments.length === 0}
+              className="flex-1 sm:flex-initial gap-1.5"
+            >
+              <Zap className={`size-3.5 ${bulkLoading ? "animate-spin" : ""}`} />
+              Regenerar Toda la Orden
+            </Button>
+          )}
+
           <Button
             size="sm"
-            variant="outline"
-            onClick={handleBulkRegenerate}
-            disabled={bulkLoading}
-            className="gap-1.5"
+            variant="secondary"
+            onClick={handleAutoAssign}
+            disabled={isAssigning || comments.every(c => c.deviceId !== null)}
+            className="flex-1 sm:flex-initial gap-1.5"
           >
-            <RefreshCw className={`size-3.5 ${bulkLoading ? "animate-spin" : ""}`} />
-            Regenerar seleccionados
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="text-muted-foreground">
-            Deseleccionar
+            {isAssigning ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Smartphone className="size-3.5" />
+            )}
+            Autovincular Bots
           </Button>
         </div>
-      )}
+      </div>
 
-      {/* Tabla de comentarios */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+      {/* Tabla de comentarios con soporte multilínea */}
+      <Card className="border-border/50 overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead className="w-[40px]"></TableHead>
+              <TableHead className="min-w-[400px]">Contenido del Comentario</TableHead>
+              <TableHead className="w-[150px]">Bot Asignado</TableHead>
+              <TableHead className="w-[120px]">Estado</TableHead>
+              <TableHead className="text-right w-[150px]">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {comments.length === 0 ? (
               <TableRow>
-                <TableHead className="w-[40px]">
-                  <Checkbox
-                    checked={selected.size === comments.length && comments.length > 0}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-                <TableHead className="min-w-[300px]">Contenido</TableHead>
-                <TableHead>Bot asignado</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Creado</TableHead>
-                <TableHead>Publicado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                  <MessageSquare className="size-12 mx-auto mb-4 opacity-20" />
+                  <p>No hay comentarios generados para esta orden.</p>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {comments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                    No hay comentarios generados para esta orden.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                comments.map((comment) => {
-                  const cfg = commentStatusConfig[comment.status] || commentStatusConfig.PENDING;
-                  return (
-                    <TableRow key={comment.id} className="group">
-                      <TableCell>
-                        <Checkbox
-                          checked={selected.has(comment.id)}
-                          onCheckedChange={() => toggleSelect(comment.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm line-clamp-2">{comment.content}</p>
-                      </TableCell>
-                      <TableCell>
-                        {comment.device ? (
+            ) : (
+              comments.map((comment) => {
+                const cfg = commentStatusConfig[comment.status] || commentStatusConfig.PENDING;
+                const isSelected = selected.has(comment.id);
+                
+                return (
+                  <TableRow key={comment.id} className={isSelected ? 'bg-primary/5' : ''}>
+                    <TableCell>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelect(comment.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="bg-muted/20 rounded-lg p-3 border border-border/30">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground/90 font-medium">
+                          {comment.content}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {comment.device ? (
+                        <div className="flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
-                            <Smartphone className="size-3 text-muted-foreground" />
-                            <span className="text-xs">{comment.device.alias || comment.device.serial.slice(0, 8)}</span>
+                            <Smartphone className="size-3 text-primary" />
+                            <span className="font-bold text-foreground">
+                              {comment.device.socialAccounts?.[0]?.user || comment.device.alias || comment.device.serial.slice(0, 8)}
+                            </span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`gap-1 ${cfg.className}`}>
-                          {cfg.icon}
-                          {cfg.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {comment.commentedAt
-                          ? new Date(comment.commentedAt).toLocaleString()
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7"
-                            onClick={() => openEdit(comment)}
-                            title="Editar"
-                          >
-                            <Pencil className="size-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7"
-                            onClick={() => handleRegenerate(comment.id)}
-                            disabled={loadingId === comment.id}
-                            title="Regenerar"
-                          >
-                            <RefreshCw className={`size-3 ${loadingId === comment.id ? "animate-spin" : ""}`} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="size-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteId(comment.id)}
-                            title="Eliminar"
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">
+                            {comment.device.socialAccounts?.[0] ? "Cuenta Activa" : "Sin Perfil"}
+                          </span>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-200 bg-amber-50">
+                          Sin Bot
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-[10px] h-6 gap-1 ${cfg.className}`}>
+                        {cfg.icon}
+                        {cfg.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => openEdit(comment)}
+                          title="Editar"
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleRegenerate(comment.id)}
+                          disabled={loadingId === comment.id}
+                          title="Regenerar"
+                        >
+                          <RefreshCw className={`size-3.5 ${loadingId === comment.id ? "animate-spin" : ""}`} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteId(comment.id)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </Card>
+
+      {/* Diálogo Editar Notas de la Orden */}
+      <Dialog open={editNotesOpen} onOpenChange={setEditNotesOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Instrucciones de la Orden</DialogTitle>
+            <DialogDescription>
+              Modifica las instrucciones que usará la IA para generar o regenerar comentarios.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              placeholder="Ej: Criticar a Sebastian por su falta de compromiso..."
+              className="min-h-[120px] resize-none bg-muted/20"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditNotesOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateNotes}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Editar */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg border-border/50">
           <DialogHeader>
             <DialogTitle>Editar comentario</DialogTitle>
             <DialogDescription>
-              Modifica el contenido del comentario antes de que sea publicado.
+              Ajusta el tono o el contenido para que sea más natural.
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            rows={5}
-            className="resize-none"
+            rows={6}
+            className="resize-none text-base bg-muted/20"
+            placeholder="Escribe el comentario aquí..."
           />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleEdit}>Guardar</Button>
+            <Button onClick={handleEdit} className="shadow-sm">Guardar Cambios</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* AlertDialog Eliminar */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-border/50">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar comentario?</AlertDialogTitle>
             <AlertDialogDescription>
-              Este comentario será eliminado permanentemente de la orden.
+              Esta acción no se puede deshacer. Tendrás que regenerar uno nuevo si lo borras por error.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -441,7 +569,7 @@ export default function CommentsList({ order }: { order: OrderData }) {
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Eliminar
+              Eliminar Definitivamente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

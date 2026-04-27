@@ -40,16 +40,35 @@ export async function createOrderFromPublication(publicationId: string, intent: 
 
   // Generar comentarios en base al contenido de la publicación
   const aiComments = await generateComments(publication.content || "", intent, notes, 3);
-  
-  // Guardarlos en la BD
+
+  // Obtener dispositivos libres que tengan al menos una cuenta social vinculada
+  const availableDevices = await prisma.device.findMany({
+    where: { 
+      status: "LIBRE",
+      socialAccounts: { some: {} } // Asegura que tenga cuenta registrada
+    },
+    take: aiComments.length
+  });
+
+  // Guardarlos en la BD con asignación automática si hay dispositivos
   if (aiComments.length > 0) {
     await prisma.comment.createMany({
-      data: aiComments.map(c => ({
+      data: aiComments.map((c, index) => ({
         orderId: order.id,
         content: c,
-        status: "PENDING"
+        status: "PENDING",
+        deviceId: availableDevices[index]?.id || null // Asignar bot si hay disponible
       }))
     });
+
+    // Marcar dispositivos como OCUPADOS para que no se usen en otra orden simultánea
+    const assignedDeviceIds = availableDevices.map(d => d.id);
+    if (assignedDeviceIds.length > 0) {
+      await prisma.device.updateMany({
+        where: { id: { in: assignedDeviceIds } },
+        data: { status: "OCUPADO" }
+      });
+    }
   }
 
   await prisma.publication.update({

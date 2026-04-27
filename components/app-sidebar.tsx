@@ -65,11 +65,6 @@ const data = {
       icon: <Smartphone className="size-4" />,
     },
     {
-      title: "Comprar Créditos",
-      url: "/dashboard/comprar",
-      icon: <ShoppingCart className="size-4" />,
-    },
-    {
       title: "Mi Perfil",
       url: "/dashboard/perfil",
       icon: <Settings className="size-4" />,

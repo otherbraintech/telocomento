@@ -33,6 +33,8 @@ import { generateOrderComments, startOrder, stopOrder, cancelOrder } from "@/lib
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
+import Link from "next/link";
+
 interface OrderItem {
   id: string;
   intent: string;
@@ -133,162 +135,186 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {orders.map((order) => {
-          const totalComments = order._count.comments;
-          const publishedComments = order.publishedCount;
-          const progressPercent = totalComments > 0 ? Math.round((publishedComments / totalComments) * 100) : 0;
+        {orders.length === 0 ? (
+          <Card className="col-span-full border-dashed border-border/50 bg-background/50 text-muted-foreground">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+              <MessageSquare className="size-12 text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No hay órdenes activas</h3>
+              <p className="mb-6 max-w-sm">
+                Aún no has creado ninguna orden para tus publicaciones aprobadas. Ve a gestión de posts para crear una.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/dashboard/posts">Ir a Gestión de Posts</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          orders.map((order) => {
+            const totalComments = order._count.comments;
+            const publishedComments = order.publishedCount;
+            const progressPercent = totalComments > 0 ? Math.round((publishedComments / totalComments) * 100) : 0;
 
-          return (
-            <Card key={order.id} className="flex flex-col border-border/50 shadow-sm relative overflow-hidden group">
-              {(order.status === "IN_PROGRESS" || order.status === "ACTIVATED") && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse" />
-              )}
-              
-              <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="text-sm font-bold truncate max-w-[200px]">
-                      {order.publication.scrapingCard?.keyword || order.publication.user?.name || "Perfil Personal"}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                       {getStatusBadge(order.status)}
-                       <Badge variant={order.intent === 'POSITIVE' ? 'outline' : 'destructive'} className="text-[10px] h-4 gap-0.5">
-                         {order.intent === 'POSITIVE' ? <ThumbsUp className="size-2.5" /> : <ThumbsDown className="size-2.5" />}
-                         {order.intent === 'POSITIVE' ? 'Apoyo' : 'Crítica'}
-                       </Badge>
-                    </div>
-                  </div>
-                  <a href={order.publication.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                    <ExternalLink className="size-4" />
-                  </a>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 pt-2 flex-1 space-y-3">
-                {/* Instrucción IA */}
-                {order.notes && (
-                  <div className="bg-primary/5 border border-primary/10 p-2.5 rounded-lg">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Zap className="size-3 text-primary" />
-                      <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">Instrucción IA</span>
-                    </div>
-                    <p className="text-xs text-foreground/80 line-clamp-2">
-                      {order.notes}
-                    </p>
-                  </div>
+            return (
+              <Card key={order.id} className="flex flex-col border-border/50 shadow-sm relative overflow-hidden group">
+                {(order.status === "IN_PROGRESS" || order.status === "ACTIVATED") && (
+                  <div className="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse" />
                 )}
+                
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-sm font-bold truncate max-w-[200px]">
+                        {order.publication.scrapingCard?.keyword || order.publication.user?.name || "Perfil Personal"}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                         {getStatusBadge(order.status)}
+                         <Badge variant={order.intent === 'POSITIVE' ? 'outline' : 'destructive'} className="text-[10px] h-4 gap-0.5">
+                           {order.intent === 'POSITIVE' ? <ThumbsUp className="size-2.5" /> : <ThumbsDown className="size-2.5" />}
+                           {order.intent === 'POSITIVE' ? 'Apoyo' : 'Crítica'}
+                         </Badge>
+                      </div>
+                    </div>
+                    <a href={order.publication.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                      <ExternalLink className="size-4" />
+                    </a>
+                  </div>
+                </CardHeader>
 
-                {/* Contenido publicación */}
-                <div className="bg-muted/30 p-3 rounded-lg border border-border/20">
-                   <p className="text-xs text-foreground/80 line-clamp-3 italic">
-                     &ldquo;{order.publication.content || "Sin contenido"}&rdquo;
-                   </p>
-                   {order.publication.authorName && (
-                     <p className="text-[10px] text-muted-foreground mt-1.5">— {order.publication.authorName}</p>
-                   )}
-                </div>
+                <CardContent className="p-4 pt-2 flex-1 space-y-3">
+                  {/* Instrucción IA */}
+                  {order.notes && (
+                    <div className="bg-primary/5 border border-primary/10 p-2.5 rounded-lg">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Zap className="size-3 text-primary" />
+                        <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">Instrucción IA</span>
+                      </div>
+                      <p className="text-xs text-foreground/80 line-clamp-2">
+                        {order.notes}
+                      </p>
+                    </div>
+                  )}
 
-                {/* Métricas */}
-                <div className="grid grid-cols-2 gap-4 text-[11px]">
-                   <div className="space-y-1">
-                     <p className="text-muted-foreground">Comentarios</p>
-                     <div className="flex items-center gap-1.5 font-semibold">
-                       <MessageSquare className="size-3 text-primary" />
-                       {publishedComments} / {totalComments}
+                  {/* Contenido publicación */}
+                  <div className="bg-muted/30 p-3 rounded-lg border border-border/20">
+                     <p className="text-xs text-foreground/80 line-clamp-3 italic">
+                       &ldquo;{order.publication.content || "Sin contenido"}&rdquo;
+                     </p>
+                     {order.publication.authorName && (
+                       <p className="text-[10px] text-muted-foreground mt-1.5">— {order.publication.authorName}</p>
+                     )}
+                  </div>
+
+                  {/* Métricas */}
+                  <div className="grid grid-cols-2 gap-4 text-[11px]">
+                     <div className="space-y-1">
+                       <p className="text-muted-foreground">Estado</p>
+                       <div className="flex items-center gap-1.5 font-semibold">
+                         {totalComments > 0 ? (
+                           <>
+                             <MessageSquare className="size-3 text-primary" />
+                             {publishedComments > 0 ? `${publishedComments} / ${totalComments} publicados` : `${totalComments} comentarios listos`}
+                           </>
+                         ) : (
+                           <>
+                             <Clock className="size-3 text-amber-500" />
+                             Pendiente de generación
+                           </>
+                         )}
+                       </div>
                      </div>
-                   </div>
-                   <div className="space-y-1">
-                     <p className="text-muted-foreground">Creada</p>
-                     <div className="flex items-center gap-1.5 font-semibold">
-                       <Clock className="size-3 text-muted-foreground" />
-                       {new Date(order.createdAt).toLocaleDateString()}
+                     <div className="space-y-1">
+                       <p className="text-muted-foreground">Fecha</p>
+                       <div className="flex items-center gap-1.5 font-semibold">
+                         <Clock className="size-3 text-muted-foreground" />
+                         {new Date(order.createdAt).toLocaleDateString()}
+                       </div>
                      </div>
-                   </div>
-                </div>
-
-                {/* Barra de progreso */}
-                {(order.status === "IN_PROGRESS" || order.status === "ACTIVATED") && totalComments > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[10px] font-medium">
-                      <span>Progreso de publicación</span>
-                      <span>{progressPercent}%</span>
-                    </div>
-                    <Progress value={progressPercent} className="h-1.5" />
                   </div>
-                )}
-              </CardContent>
 
-              <CardFooter className="p-3 border-t bg-muted/5 flex flex-col gap-2">
-                {/* Botón ver comentarios */}
-                {order.status !== "DRAFT" && totalComments > 0 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs gap-1.5"
-                    onClick={() => router.push(`/dashboard/ordenes/${order.id}/comentarios`)}
-                  >
-                    <Eye className="size-3" />
-                    Ver Comentarios ({totalComments})
-                  </Button>
-                )}
+                  {/* Barra de progreso */}
+                  {(order.status === "IN_PROGRESS" || order.status === "ACTIVATED") && totalComments > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-medium">
+                        <span>Progreso de publicación</span>
+                        <span>{progressPercent}%</span>
+                      </div>
+                      <Progress value={progressPercent} className="h-1.5" />
+                    </div>
+                  )}
+                </CardContent>
 
-                {/* Acciones principales */}
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  {order.status === "DRAFT" || order.status === "STOPPED" || order.status === "GENERATED" ? (
-                    <>
-                      {totalComments === 0 ? (
-                        <Button 
-                          size="sm" 
-                          variant="secondary"
-                          className="col-span-2 h-9 font-semibold"
-                          onClick={() => handleGenerate(order.id)}
-                          disabled={loadingId === order.id}
-                        >
-                          <Wand2 className="size-3.5 mr-2" />
-                          Generar Comentarios
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 h-9 font-semibold"
-                          onClick={() => setConfirmStartId(order.id)}
-                          disabled={loadingId === order.id}
-                        >
-                          <Play className="size-3.5 mr-2 fill-current" />
-                          Empezar
-                        </Button>
-                      )}
-                    </>
-                  ) : order.status === "IN_PROGRESS" || order.status === "ACTIVATED" ? (
-                    <Button 
-                      size="sm" 
+                <CardFooter className="p-3 border-t bg-muted/5 flex flex-col gap-2">
+                  {/* Botón ver comentarios */}
+                  {order.status !== "DRAFT" && totalComments > 0 && (
+                    <Button
+                      size="sm"
                       variant="outline"
-                      className="h-9 font-semibold border-orange-500/50 text-orange-600 hover:bg-orange-50"
-                      onClick={() => handleStop(order.id)}
-                      disabled={loadingId === order.id}
+                      className="w-full h-8 text-xs gap-1.5"
+                      onClick={() => router.push(`/dashboard/ordenes/${order.id}/comentarios`)}
                     >
-                      <Square className="size-3.5 mr-2 fill-current" />
-                      Detener
-                    </Button>
-                  ) : null}
-
-                  {order.status !== "CANCELLED" && order.status !== "COMPLETED" && (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleCancel(order.id)}
-                      disabled={loadingId === order.id}
-                    >
-                      <Trash2 className="size-3.5 mr-2" />
-                      Cancelar
+                      <Eye className="size-3" />
+                      Ver Comentarios ({totalComments})
                     </Button>
                   )}
-                </div>
-              </CardFooter>
-            </Card>
-          );
-        })}
+
+                  {/* Acciones principales */}
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    {order.status === "DRAFT" || order.status === "STOPPED" || order.status === "GENERATED" ? (
+                      <>
+                        {totalComments === 0 ? (
+                          <Button 
+                            size="sm" 
+                            variant="secondary"
+                            className="col-span-2 h-9 font-semibold"
+                            onClick={() => handleGenerate(order.id)}
+                            disabled={loadingId === order.id}
+                          >
+                            <Wand2 className="size-3.5 mr-2" />
+                            Generar Comentarios
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700 h-9 font-semibold"
+                            onClick={() => setConfirmStartId(order.id)}
+                            disabled={loadingId === order.id}
+                          >
+                            <Play className="size-3.5 mr-2 fill-current" />
+                            Lanzar Comentarios
+                          </Button>
+                        )}
+                      </>
+                    ) : order.status === "IN_PROGRESS" || order.status === "ACTIVATED" ? (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-9 font-semibold border-orange-500/50 text-orange-600 hover:bg-orange-50"
+                        onClick={() => handleStop(order.id)}
+                        disabled={loadingId === order.id}
+                      >
+                        <Square className="size-3.5 mr-2 fill-current" />
+                        Detener
+                      </Button>
+                    ) : null}
+
+                    {order.status !== "CANCELLED" && order.status !== "COMPLETED" && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleCancel(order.id)}
+                        disabled={loadingId === order.id}
+                      >
+                        <Trash2 className="size-3.5 mr-2" />
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
+                </CardFooter>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       {/* AlertDialog de confirmación para Empezar */}

@@ -51,22 +51,33 @@ export default async function TarjetasPage() {
           {remaining === 0 && (
             <RequestTicketsButton isAlreadyRequesting={user?.isRequestingTickets || false} />
           )}
-          <Button asChild disabled={remaining === 0}>
-            <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Tarjeta
-            </Link>
-          </Button>
+          {limit > 0 && (
+            <Button asChild disabled={remaining === 0}>
+              <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nueva Tarjeta
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
       {tarjetas.length === 0 ? (
         <Card className="border-dashed border-border/50 bg-background/50 text-muted-foreground">
           <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-            <p className="mb-4">No tienes ninguna tarjeta de monitoreo configurada.</p>
-            <Button asChild variant="outline">
-              <Link href="/dashboard/tarjetas/nueva">Crear la primera tarjeta</Link>
-            </Button>
+            {limit === 0 ? (
+              <>
+                <p className="mb-4">Tu cuenta actualmente no tiene capacidad para crear tarjetas de monitoreo.</p>
+                <RequestTicketsButton isAlreadyRequesting={user?.isRequestingTickets || false} />
+              </>
+            ) : (
+              <>
+                <p className="mb-4">No tienes ninguna tarjeta de monitoreo configurada.</p>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/tarjetas/nueva">Crear la primera tarjeta</Link>
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (

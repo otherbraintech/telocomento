@@ -25,7 +25,11 @@ export default async function ComentariosPage({
         },
       },
       comments: {
-        include: { device: true },
+        include: { 
+          device: {
+            include: { socialAccounts: true }
+          } 
+        },
         orderBy: { createdAt: "asc" },
       },
     },

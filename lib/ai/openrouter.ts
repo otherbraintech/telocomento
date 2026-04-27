@@ -57,17 +57,23 @@ export async function generateComments(
   notes: string, 
   count: number = 3
 ): Promise<string[]> {
-  const prompt = `Genera ${count} comentarios para responder a esta publicación.
-El objetivo es ${intent === "POSITIVE" ? "APOYAR y mostrar positividad" : "CRITICAR y mostrar desacuerdo"}.
-Instrucciones adicionales: ${notes || "Ninguna."}
+  const prompt = `Actúa como un usuario real de redes sociales en una conversación casual. 
+Genera ${count} comentarios para responder a esta publicación.
+El objetivo es ${intent === "POSITIVE" ? "APOYAR (estar de acuerdo)" : "CRITICAR (mostrar desacuerdo)"}.
+Instrucciones extra del usuario: ${notes || "Ninguna."}
+
 Publicación original: "${content}"
 
-REGLAS:
-1. Cada comentario debe ser único y natural.
-2. Evita sonar como un bot.
-3. Separa cada comentario generado usando tres guiones (---).`;
+REGLAS CRÍTICAS:
+1. TONO BOLIVIANO: Escribe como un usuario de BOLIVIA (tono coloquial, "criollo"). Usa expresiones naturales de allá pero sin exagerar. PROHIBIDO usar "menudo", "vaya", "estupendo" o jergas de España/México.
+2. IDENTIFICA AL SUJETO: Lee las instrucciones extra. Si se menciona un nombre (ej. "Sebastian"), asegúrate de incluirlo en el comentario para que sea específico. No ataques al autor del post.
+3. PROHIBIDO usar emojis o emoticonos.
+4. SIN PUNTOS FINALES: Casi nadie usa punto final en redes sociales. NO termines los comentarios con un punto (.).
+5. PUNTUACIÓN RELAJADA: Usa principalmente COMAS (,) para separar ideas. No uses signos de exclamación excesivos.
+6. VARIEDAD: Haz algunos muy cortos y otros un poco más largos (máximo 20 palabras).
+7. Separa cada comentario generado usando tres guiones (---).`;
 
-  const result = await callOpenRouter(prompt, "Eres un generador de opiniones de usuarios reales en redes sociales.");
+  const result = await callOpenRouter(prompt, "Eres un usuario real de redes sociales, directo, coloquial y sin rodeos. No usas emojis y escribes de forma natural.");
   
   if (!result) return [];
 
