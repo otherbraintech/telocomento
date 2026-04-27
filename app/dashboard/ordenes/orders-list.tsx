@@ -43,9 +43,12 @@ interface OrderItem {
     content: string | null;
     sourceUrl: string;
     authorName: string | null;
-    scrapingCard: {
+    scrapingCard?: {
       keyword: string;
-    };
+    } | null;
+    user?: {
+      name: string | null;
+    } | null;
   };
   _count: {
     comments: number;
@@ -145,7 +148,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <CardTitle className="text-sm font-bold truncate max-w-[200px]">
-                      {order.publication.scrapingCard.keyword}
+                      {order.publication.scrapingCard?.keyword || order.publication.user?.name || "Perfil Personal"}
                     </CardTitle>
                     <div className="flex items-center gap-2">
                        {getStatusBadge(order.status)}

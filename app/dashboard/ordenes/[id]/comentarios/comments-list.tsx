@@ -80,9 +80,12 @@ interface OrderData {
     content: string | null;
     sourceUrl: string;
     authorName: string | null;
-    scrapingCard: {
+    scrapingCard?: {
       keyword: string;
-    };
+    } | null;
+    user?: {
+      name: string | null;
+    } | null;
   };
   comments: CommentItem[];
 }
@@ -232,7 +235,7 @@ export default function CommentsList({ order }: { order: OrderData }) {
               {order.intent === "POSITIVE" ? "Apoyo" : "Crítica"}
             </Badge>
             <span>•</span>
-            <span>{order.publication.scrapingCard.keyword}</span>
+            <span>{order.publication.scrapingCard?.keyword || order.publication.user?.name || "Perfil Personal"}</span>
             <span>•</span>
             <span>{publishedCount}/{comments.length} publicados</span>
           </div>

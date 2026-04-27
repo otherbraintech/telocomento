@@ -17,7 +17,12 @@ export default async function ComentariosPage({
     where: { id, userId: session.user.id },
     include: {
       publication: {
-        include: { scrapingCard: true },
+        include: { 
+          scrapingCard: true,
+          user: {
+            select: { name: true }
+          }
+        },
       },
       comments: {
         include: { device: true },

@@ -12,7 +12,12 @@ export default async function OrdenesPage() {
     orderBy: { createdAt: "desc" },
     include: {
       publication: {
-        include: { scrapingCard: true }
+        include: { 
+          scrapingCard: true,
+          user: {
+            select: { name: true }
+          }
+        }
       },
       _count: { select: { comments: true } }
     }
