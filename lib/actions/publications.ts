@@ -79,3 +79,28 @@ export async function createOrderFromPublication(publicationId: string, intent: 
   revalidatePath("/dashboard/publicaciones");
   return order.id;
 }
+
+export async function createManualPublication(data: {
+  sourceUrl: string;
+  authorName?: string;
+  content?: string;
+  imageUrl: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  const publication = await prisma.publication.create({
+    data: {
+      userId: session.user.id,
+      sourceUrl: data.sourceUrl,
+      authorName: data.authorName,
+      content: data.content,
+      imageUrl: data.imageUrl,
+      publishedAt: new Date(),
+      reviewStatus: "APPROVED", // Las manuales se asumen aprobadas
+    }
+  });
+
+  revalidatePath("/dashboard/posts");
+  return publication;
+}

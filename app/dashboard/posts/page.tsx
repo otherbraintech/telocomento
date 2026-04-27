@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import PostsList from "./posts-list";
+import { CreatePublicationDialog } from "./create-publication-dialog";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
@@ -39,6 +40,7 @@ export default async function PostsGestionPage() {
             Administra los posts aprobados o rechazados y crea órdenes para la IA.
           </p>
         </div>
+        <CreatePublicationDialog />
       </div>
 
       <PostsList initialPosts={reviewedPublications} />
