@@ -6,19 +6,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { scrapingCardId, userId, authorName, content, sourceUrl, imageUrl, publishedAt } = body;
 
-    if ((!scrapingCardId && !userId) || !sourceUrl || !imageUrl) {
-      return NextResponse.json({ error: "Faltan datos requeridos (scrapingCardId o userId, sourceUrl, imageUrl)" }, { status: 400 });
+    if (!sourceUrl || !imageUrl) {
+      return NextResponse.json({ error: "Faltan datos requeridos (sourceUrl, imageUrl)" }, { status: 400 });
     }
 
-    // Validar que la tarjeta o el usuario existen
-    if (scrapingCardId) {
-      const card = await prisma.scrapingCard.findUnique({
-        where: { id: scrapingCardId }
-      });
-      if (!card) {
-        return NextResponse.json({ error: "Tarjeta de monitoreo no encontrada" }, { status: 404 });
-      }
-    } else if (userId) {
+    // Validar que el usuario existe si se proporciona userId
+    if (userId) {
       const user = await prisma.user.findUnique({
         where: { id: userId }
       });
