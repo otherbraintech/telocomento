@@ -20,7 +20,23 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const isActive = (session?.user as any)?.status === "ACTIVE";
+
+  const user = await prisma.user.findUnique({
+    where: { id: session?.user?.id },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      bio: true,
+      status: true,
+      cardLimit: true,
+      _count: {
+        select: { scrapingCards: true }
+      }
+    }
+  });
+
+  const isActive = user?.status === "ACTIVE";
 
   if (!isActive) {
     return (
@@ -53,20 +69,6 @@ export default async function DashboardLayout({
       </TooltipProvider>
     )
   }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session?.user?.id },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      bio: true,
-      cardLimit: true,
-      _count: {
-        select: { scrapingCards: true }
-      }
-    }
-  });
 
   const cardsCount = user?._count.scrapingCards || 0;
   const cardLimit = user?.cardLimit || 0;
