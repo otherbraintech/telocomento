@@ -51,7 +51,7 @@ export async function generateOrderComments(orderId: string) {
         orderId,
         content: c,
         status: "PENDING" as const,
-        deviceId: freeDevices[index % freeDevices.length]?.id || null,
+        deviceId: freeDevices[index]?.id || null,
       })),
     });
 
@@ -243,11 +243,18 @@ export async function autoAssignDevicesToOrder(orderId: string) {
 
   if (orphanComments.length === 0) return { success: true, message: "Todos los comentarios ya tienen bot." };
 
-  // 2. Obtener dispositivos disponibles (libres u ocupados) que tengan cuenta social
+  // 1.5. Obtener IDs de dispositivos ya asignados a esta orden
+  const assignedDeviceIds = await prisma.comment.findMany({
+    where: { orderId, deviceId: { not: null } },
+    select: { deviceId: true }
+  }).then(comments => comments.map(c => c.deviceId as string));
+
+  // 2. Obtener dispositivos disponibles (libres u ocupados) que tengan cuenta social y NO estén ya en la orden
   const availableDevices = await prisma.device.findMany({
     where: { 
       status: { in: ["LIBRE", "OCUPADO"] },
-      socialAccounts: { some: {} }
+      socialAccounts: { some: {} },
+      id: { notIn: assignedDeviceIds }
     },
     take: orphanComments.length
   });

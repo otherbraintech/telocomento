@@ -33,12 +33,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // 2. Marcar comentarios como SENT para que no se repitan
+    // 2. No cambiamos el estado del comentario aquí, se mantiene como PENDING
+    // para que el bot service sea el encargado de reportar éxito o error.
     const commentIds = pendingComments.map(c => c.id);
-    await prisma.comment.updateMany({
-      where: { id: { in: commentIds } },
-      data: { status: "SENT" }
-    });
 
     // 3. Marcar órdenes relacionadas como IN_PROGRESS
     const orderIds = Array.from(new Set(pendingComments.map(c => c.orderId)));

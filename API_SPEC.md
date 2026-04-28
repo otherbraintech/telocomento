@@ -55,7 +55,12 @@ Actualiza el estado de un comentario después de intentar publicarlo.
 ---
 
 ## Estados de Comentario
-- `PENDING`: Generado y esperando ser enviado al bot.
-- `SENT`: Enviado al servicio de bots (marcado automáticamente al hacer GET).
+- `PENDING`: Generado y esperando ser procesado por el bot.
+- `SENT`: (Opcional) Puede usarse para indicar que el bot ya tomó la tarea.
 - `PUBLISHED`: Confirmado como publicado por el bot.
 - `ERROR`: Falló el intento de publicación.
+
+## Notas de Implementación
+- **Un Bot por Orden**: El sistema garantiza que un mismo dispositivo (bot) no sea asignado a más de un comentario dentro de la misma orden.
+- **Estado Persistente**: El endpoint `GET /api/orders/pending` **NO** cambia el estado de los comentarios a `SENT` automáticamente. Los comentarios permanecen en `PENDING` hasta que el servicio de bots reporte un nuevo estado vía `PATCH`.
+- **Filtrado Automático**: Solo se retornan comentarios con `deviceId` asignado.
