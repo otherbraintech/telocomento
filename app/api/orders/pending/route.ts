@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
       orderId: c.orderId,
       content: c.content,
       publicationUrl: c.order.publication.sourceUrl,
+      authorName: c.order.publication.authorName,
       deviceSerial: c.device?.serial || null,
       deviceAlias: c.device?.alias || null,
     }));
