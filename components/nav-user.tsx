@@ -20,6 +20,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
 
 import { signOut } from "next-auth/react"
@@ -75,10 +76,12 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-zinc-800" />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="hover:bg-zinc-900 cursor-pointer">
-                <BadgeCheckIcon className="mr-2 h-4 w-4" />
-                Cuenta
-              </DropdownMenuItem>
+              <Link href="/dashboard/perfil">
+                <DropdownMenuItem className="hover:bg-zinc-900 cursor-pointer">
+                  <BadgeCheckIcon className="mr-2 h-4 w-4" />
+                  Cuenta
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem className="hover:bg-zinc-900 cursor-pointer">
                 <BellIcon className="mr-2 h-4 w-4" />
                 Notificaciones

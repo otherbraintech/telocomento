@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { OrderAdminActions } from "@/components/admin/order-admin-actions";
 
 export default async function AdminOrdenesPage() {
   const session = await auth();
@@ -14,7 +15,9 @@ export default async function AdminOrdenesPage() {
   const orders = await prisma.order.findMany({
     include: {
       user: true,
-      publication: true,
+      publication: {
+        include: { scrapingCard: true }
+      },
       _count: { select: { comments: true } }
     },
     orderBy: { createdAt: "desc" },
@@ -36,30 +39,40 @@ export default async function AdminOrdenesPage() {
             <table className="w-full caption-bottom text-sm">
               <thead className="[&_tr]:border-b">
                 <tr className="border-b">
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">ID</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[50px]">#</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Keyword</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Usuario</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Intención</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Comentarios</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Estado</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Fecha</th>
+                  <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {orders.map((order: any) => (
+                {orders.map((order: any, index: number) => (
                   <tr key={order.id} className="border-b transition-colors hover:bg-muted/50">
-                    <td className="p-4 align-middle font-mono text-[10px]">{order.id}</td>
+                    <td className="p-4 align-middle font-bold text-muted-foreground">{index + 1}</td>
+                    <td className="p-4 align-middle">
+                      <Badge variant="secondary" className="font-bold">
+                        {order.publication.scrapingCard?.keyword || "Manual"}
+                      </Badge>
+                    </td>
                     <td className="p-4 align-middle">{order.user.name}</td>
                     <td className="p-4 align-middle">
                       <Badge variant={order.intent === "POSITIVE" ? "default" : "destructive"}>
                         {order.intent}
                       </Badge>
                     </td>
-                    <td className="p-4 align-middle">{order._count.comments}</td>
+                    <td className="p-4 align-middle font-medium">{order._count.comments}</td>
                     <td className="p-4 align-middle">
                       <Badge variant="outline">{order.status}</Badge>
                     </td>
                     <td className="p-4 align-middle text-muted-foreground text-xs">
                       {new Date(order.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      <OrderAdminActions order={order} />
                     </td>
                   </tr>
                 ))}

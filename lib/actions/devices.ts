@@ -180,12 +180,22 @@ export async function getAvailableDevicesCount(): Promise<number> {
   });
 }
 
-/**
- * Obtener dispositivos libres para asignación.
- */
 export async function getFreeDevices() {
   return prisma.device.findMany({
     where: { status: "LIBRE" },
+    include: { socialAccounts: true },
+  });
+}
+
+/**
+ * Obtener todos los dispositivos listos (LIBRE u OCUPADO) con cuenta social.
+ */
+export async function getAvailableDevices() {
+  return prisma.device.findMany({
+    where: {
+      status: { in: ["LIBRE", "OCUPADO"] },
+      socialAccounts: { some: {} }
+    },
     include: { socialAccounts: true },
   });
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { generateComments } from "@/lib/ai/openrouter";
@@ -285,4 +286,57 @@ export async function updateOrderNotes(orderId: string, notes: string) {
     data: { notes }
   });
   revalidatePath(`/dashboard/ordenes/${orderId}/comentarios`);
+}
+
+export async function updateOrderAdmin(id: string, data: { status: any; intent: any; notes?: string }) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("No autorizado");
+
+  await prisma.order.update({
+    where: { id },
+    data: {
+      status: data.status,
+      intent: data.intent,
+      notes: data.notes
+    }
+  });
+
+  revalidatePath("/dashboard/admin/ordenes");
+}
+
+export async function deleteOrder(id: string) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("No autorizado");
+
+  // Al eliminar una orden, Prisma cascade borrará los comentarios. 
+  // Pero necesitamos liberar los dispositivos si estaban ocupados.
+  const comments = await prisma.comment.findMany({
+    where: { orderId: id, status: { in: ["PENDING", "SENT"] } }
+  });
+
+  const deviceIds = comments.map(c => c.deviceId).filter((d): d is string => d !== null);
+
+  if (deviceIds.length > 0) {
+    await prisma.device.updateMany({
+      where: { id: { in: deviceIds } },
+      data: { status: "LIBRE" }
+    });
+  }
+
+  await prisma.order.delete({
+    where: { id }
+  });
+
+  revalidatePath("/dashboard/admin/ordenes");
+}
+
+export async function getOrderCommentsAdmin(orderId: string) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("No autorizado");
+
+  return await prisma.comment.findMany({
+    where: { orderId },
+    include: { device: true },
+    orderBy: { createdAt: "asc" }
+  });
 }

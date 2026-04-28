@@ -57,7 +57,7 @@ export function ProfileSetupDialog({ user }: ProfileSetupDialogProps) {
       await updateProfile(formData)
       toast.success("Perfil completado correctamente")
       setOpen(false)
-      router.refresh()
+      router.push("/dashboard/publicaciones")
     } catch (error) {
       toast.error("Error al actualizar el perfil")
     } finally {

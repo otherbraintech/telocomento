@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { TarjetaStatusToggle } from "@/components/tarjeta-status-toggle";
+import { CardActions } from "@/components/card-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,9 +86,12 @@ export default async function TarjetasPage() {
           {tarjetas.map((tarjeta: any) => (
             <Card key={tarjeta.id} className="border-border/50 shadow-sm flex flex-col">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold flex justify-between items-start">
-                  <span>{tarjeta.keyword}</span>
-                  <TarjetaStatusToggle cardId={tarjeta.id} status={tarjeta.status} />
+                <CardTitle className="text-lg font-semibold flex justify-between items-start gap-2">
+                  <span className="truncate">{tarjeta.keyword}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <TarjetaStatusToggle cardId={tarjeta.id} status={tarjeta.status} />
+                    <CardActions card={tarjeta} />
+                  </div>
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2" title={tarjeta.context || "Sin contexto"}>
                   Contexto: {tarjeta.context || "Ninguno proporcionado"}

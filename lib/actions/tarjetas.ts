@@ -76,3 +76,47 @@ export async function toggleTarjetaStatus(formData: FormData) {
   // Use revalidatePath or let redirect refresh the page
   redirect("/dashboard/tarjetas");
 }
+
+export async function updateTarjeta(cardId: string, data: { keyword: string; context?: string }) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  const card = await prisma.scrapingCard.findUnique({ where: { id: cardId } });
+  if (!card) throw new Error("Tarjeta no encontrada");
+
+  // Si no es el dueño y no es ADMIN, no puede editar
+  if (card.userId !== session.user.id && session.user.role !== "ADMIN") {
+    throw new Error("No tienes permiso para editar esta tarjeta");
+  }
+
+  await prisma.scrapingCard.update({
+    where: { id: cardId },
+    data: {
+      keyword: data.keyword,
+      context: data.context || null,
+    },
+  });
+
+  revalidatePath("/dashboard/tarjetas");
+  return { success: true };
+}
+
+export async function deleteTarjeta(cardId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  const card = await prisma.scrapingCard.findUnique({ where: { id: cardId } });
+  if (!card) throw new Error("Tarjeta no encontrada");
+
+  // Si no es el dueño y no es ADMIN, no puede borrar
+  if (card.userId !== session.user.id && session.user.role !== "ADMIN") {
+    throw new Error("No tienes permiso para eliminar esta tarjeta");
+  }
+
+  await prisma.scrapingCard.delete({
+    where: { id: cardId },
+  });
+
+  revalidatePath("/dashboard/tarjetas");
+  return { success: true };
+}

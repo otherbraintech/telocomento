@@ -47,7 +47,7 @@ export async function createUser(data: any) {
       password: hashedPassword,
       role: role as any,
       status: status as any,
-      cardLimit: parseInt(cardLimit) || 10
+      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit)
     }
   })
 
@@ -66,7 +66,7 @@ export async function updateUser(userId: string, data: any) {
       name,
       role: role as any,
       status: status as any,
-      cardLimit: parseInt(cardLimit) || 10
+      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit)
     }
   })
 

@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, Rss, MessageSquareQuote, CheckCircle2 } from "lucide-react";
+import { CreditCard, Rss, MessageSquareQuote, CheckCircle2, Search, PlusCircle, ArrowRight } from "lucide-react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -51,6 +53,53 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">
           Gestiona tus tarjetas de monitoreo, publicaciones y órdenes de bots.
         </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link href="/dashboard/publicaciones" className="group">
+          <Card className="h-full border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer overflow-hidden relative">
+            <div className="absolute right-0 top-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+              <Search className="size-24" />
+            </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Search className="size-5" />
+                Explorar Publicaciones
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Revisa los últimos hallazgos del scraper y aprueba publicaciones para generar comentarios.
+              </p>
+              <div className="flex items-center text-sm font-bold text-primary gap-1">
+                Ver hallazgos <ArrowRight className="size-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/tarjetas/nueva" className="group">
+          <Card className="h-full border-border/50 hover:border-primary/30 transition-all cursor-pointer overflow-hidden relative">
+            <div className="absolute right-0 top-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+              <PlusCircle className="size-24" />
+            </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlusCircle className="size-5" />
+                Nueva Tarjeta de Monitoreo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Configura nuevas palabras clave y contextos para que el sistema busque en Facebook por ti.
+              </p>
+              <div className="flex items-center text-sm font-bold gap-1 text-foreground/80">
+                Crear tarjeta <ArrowRight className="size-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

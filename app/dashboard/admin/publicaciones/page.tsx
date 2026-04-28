@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
+import { PublicationAdminActions } from "@/components/admin/publication-admin-actions";
 
 export default async function AdminPublicacionesPage() {
   const session = await auth();
@@ -43,6 +44,7 @@ export default async function AdminPublicacionesPage() {
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Contenido</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Estado</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Link</th>
+                  <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
@@ -63,6 +65,9 @@ export default async function AdminPublicacionesPage() {
                       <a href={pub.sourceUrl} target="_blank" rel="noreferrer">
                         <ExternalLink className="size-4" />
                       </a>
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      <PublicationAdminActions publication={pub} />
                     </td>
                   </tr>
                 ))}

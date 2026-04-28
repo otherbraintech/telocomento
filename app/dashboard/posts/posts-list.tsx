@@ -167,47 +167,56 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
                 </CardContent>
 
                 <CardFooter className="p-3 border-t bg-muted/5 flex gap-2">
-                  {post.orders.length > 0 ? (
-                    <Button 
-                      asChild
-                      variant="default" 
-                      size="sm" 
-                      className="flex-1 h-8 text-[11px]"
-                    >
-                      <Link href={`/dashboard/ordenes/${post.orders[0].id}/comentarios`}>
-                        <Eye className="size-3 mr-1" /> Ver Orden
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 h-8 text-[11px]" 
-                      onClick={() => handleStatusToggle(post)}
-                    >
-                      {post.reviewStatus === "APPROVED" ? (
-                        <><X className="size-3 mr-1" /> Rechazar</>
-                      ) : (
-                        <><Check className="size-3 mr-1" /> Aprobar</>
-                      )}
-                    </Button>
-                  )}
+                  {(() => {
+                    const activeOrder = post.orders.find(o => o.status !== "CANCELLED");
+                    const hasActiveOrder = !!activeOrder;
 
-                  {post.reviewStatus === "APPROVED" && (
-                    <Button 
-                      variant={post.orders.length > 0 ? "ghost" : "default"} 
-                      size="sm" 
-                      className="flex-1 h-8 text-[11px]"
-                      disabled={post.orders.length > 0}
-                      onClick={() => openOrderModal(post)}
-                    >
-                      {post.orders.length > 0 ? (
-                        <><Clock className="size-3 mr-1" /> Orden Lista</>
-                      ) : (
-                        <><MessageSquarePlus className="size-3 mr-1" /> Crear Orden</>
-                      )}
-                    </Button>
-                  )}
+                    return (
+                      <>
+                        {hasActiveOrder ? (
+                          <Button 
+                            asChild
+                            variant="default" 
+                            size="sm" 
+                            className="flex-1 h-8 text-[11px]"
+                          >
+                            <Link href={`/dashboard/ordenes/${activeOrder.id}/comentarios`}>
+                              <Eye className="size-3 mr-1" /> Ver Orden
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1 h-8 text-[11px]" 
+                            onClick={() => handleStatusToggle(post)}
+                          >
+                            {post.reviewStatus === "APPROVED" ? (
+                              <><X className="size-3 mr-1" /> Rechazar</>
+                            ) : (
+                              <><Check className="size-3 mr-1" /> Aprobar</>
+                            )}
+                          </Button>
+                        )}
+
+                        {post.reviewStatus === "APPROVED" && (
+                          <Button 
+                            variant={hasActiveOrder ? "ghost" : "default"} 
+                            size="sm" 
+                            className="flex-1 h-8 text-[11px]"
+                            disabled={hasActiveOrder}
+                            onClick={() => openOrderModal(post)}
+                          >
+                            {hasActiveOrder ? (
+                              <><Clock className="size-3 mr-1" /> Orden Lista</>
+                            ) : (
+                              <><MessageSquarePlus className="size-3 mr-1" /> Crear Orden</>
+                            )}
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </CardFooter>
               </Card>
             ))

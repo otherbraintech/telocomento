@@ -86,6 +86,11 @@ const data = {
       url: "/dashboard/admin/ordenes",
       icon: <MessageSquareQuote className="size-4" />,
     },
+    {
+      title: "Admin Tarjetas",
+      url: "/dashboard/admin/tarjetas",
+      icon: <CreditCard className="size-4" />,
+    },
   ]
 }
 
@@ -104,7 +109,11 @@ export function AppSidebar({ user, ...props }: { user: any } & React.ComponentPr
         )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user || { name: "Invitado", email: "" }} />
+        <NavUser user={{
+          name: user?.name || "Usuario",
+          email: user?.email || "",
+          avatar: user?.image || ""
+        }} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
