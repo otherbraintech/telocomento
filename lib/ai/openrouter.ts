@@ -23,7 +23,8 @@ async function callOpenRouter(prompt: string, systemPrompt: string = "Eres un as
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt }
-      ]
+      ],
+      temperature: 0.8, // Aumenta la creatividad y variedad
     })
   });
 
@@ -70,8 +71,9 @@ REGLAS CRÍTICAS:
 3. PROHIBIDO usar emojis o emoticonos.
 4. SIN PUNTOS FINALES: Casi nadie usa punto final en redes sociales. NO termines los comentarios con un punto (.).
 5. PUNTUACIÓN RELAJADA: Usa principalmente COMAS (,) para separar ideas. No uses signos de exclamación excesivos.
-6. VARIEDAD: Haz algunos muy cortos y otros un poco más largos (máximo 20 palabras).
-7. Separa cada comentario generado usando tres guiones (---).`;
+6. VARIEDAD EXTREMA: Cada comentario debe tener una estructura y vocabulario distinto. No repitas las mismas ideas o palabras. Algunos pueden ser preguntas, otros exclamaciones, otros opiniones directas.
+7. LONGITUD VARIABLE: Varía drásticamente la cantidad de palabras entre comentarios. Genera algunos muy breves (4-6 palabras), otros medios (10-15 palabras) y otros más detallados (hasta 30 palabras).
+8. Separa cada comentario generado usando tres guiones (---). No incluyas números ni viñetas.`;
 
   const result = await callOpenRouter(prompt, "Eres un usuario real de redes sociales, directo, coloquial y sin rodeos. No usas emojis y escribes de forma natural.");
   

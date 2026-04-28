@@ -144,8 +144,8 @@ export function OrderAdminActions({ order }: { order: any }) {
               <Select value={formData.intent} onValueChange={(val) => setFormData({...formData, intent: val})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="POSITIVE">POSITIVE (Apoyar)</SelectItem>
-                  <SelectItem value="NEGATIVE">NEGATIVE (Atacar)</SelectItem>
+                  <SelectItem value="POSITIVE">Apoyo (POSITIVE)</SelectItem>
+                  <SelectItem value="NEGATIVE">Crítica (NEGATIVE)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -154,12 +154,14 @@ export function OrderAdminActions({ order }: { order: any }) {
               <Select value={formData.status} onValueChange={(val) => setFormData({...formData, status: val})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DRAFT">DRAFT</SelectItem>
-                  <SelectItem value="GENERATED">GENERATED</SelectItem>
-                  <SelectItem value="ACTIVATED">ACTIVATED</SelectItem>
-                  <SelectItem value="IN_PROGRESS">IN_PROGRESS</SelectItem>
-                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                  <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+                  <SelectItem value="DRAFT">Borrador</SelectItem>
+                  <SelectItem value="GENERATED">Generado</SelectItem>
+                  <SelectItem value="ACTIVATED">Activado</SelectItem>
+                  <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
+                  <SelectItem value="COMPLETED">Completado</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                  <SelectItem value="STOPPED">Detenido</SelectItem>
+                  <SelectItem value="ERROR">Error</SelectItem>
                 </SelectContent>
               </Select>
             </div>
