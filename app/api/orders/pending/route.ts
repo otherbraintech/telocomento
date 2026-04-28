@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     const pendingComments = await prisma.comment.findMany({
       where: {
         status: "PENDING",
+        deviceId: { not: null },
         order: typeQuery ? { intent: typeQuery as any } : undefined,
       },
       include: {
