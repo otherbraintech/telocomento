@@ -25,6 +25,7 @@ export function UserDialog({ user }: Props) {
     role: user?.role || "USER",
     status: user?.status || "ACTIVE",
     cardLimit: user?.cardLimit?.toString() || "10",
+    orderLimit: user?.orderLimit?.toString() || "0",
   })
 
   const isEdit = !!user
@@ -39,7 +40,7 @@ export function UserDialog({ user }: Props) {
           await createUser(formData)
         }
         setIsOpen(false)
-        if (!isEdit) setFormData({ name: "", username: "", email: "", password: "", role: "USER", status: "ACTIVE", cardLimit: "10" })
+        if (!isEdit) setFormData({ name: "", username: "", email: "", password: "", role: "USER", status: "ACTIVE", cardLimit: "10", orderLimit: "0" })
       } catch (error) {
         console.error(error)
         alert("Ocurrió un error al procesar el usuario")
@@ -141,15 +142,27 @@ export function UserDialog({ user }: Props) {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="cardLimit">Límite de Tarjetas</Label>
-              <Input 
-                id="cardLimit" 
-                type="number"
-                value={formData.cardLimit} 
-                onChange={(e) => setFormData({...formData, cardLimit: e.target.value})} 
-                required 
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="cardLimit">Límite de Tarjetas</Label>
+                <Input 
+                  id="cardLimit" 
+                  type="number"
+                  value={formData.cardLimit} 
+                  onChange={(e) => setFormData({...formData, cardLimit: e.target.value})} 
+                  required 
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="orderLimit">Límite de Órdenes</Label>
+                <Input 
+                  id="orderLimit" 
+                  type="number"
+                  value={formData.orderLimit} 
+                  onChange={(e) => setFormData({...formData, orderLimit: e.target.value})} 
+                  required 
+                />
+              </div>
             </div>
 
             <DialogFooter className="pt-4">

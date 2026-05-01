@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { rejectPublication, approvePublication } from "@/lib/actions/publications";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Bot } from "lucide-react";
+import { Check, X, ExternalLink, Bot, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { toast } from "sonner";
@@ -34,6 +34,17 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   const [isPending, setIsPending] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
   const [isExiting, setIsExiting] = useState(false);
+  const [viewMode, setViewMode] = useState<"swipe" | "grid">("swipe");
+
+  // Escuchar cambio de vista desde el toolbar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<"swipe" | "grid">).detail;
+      setViewMode(detail);
+    };
+    window.addEventListener("review-view-change", handler);
+    return () => window.removeEventListener("review-view-change", handler);
+  }, []);
 
   // Umbral alto para evitar swipes accidentales
   const SWIPE_THRESHOLD = 350;
@@ -115,7 +126,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   const handleReject = () => flyAndAct("left");
   const handleApprove = () => flyAndAct("right");
 
-  const handleDragEnd = (_: any, info: any) => {
+  const handleDragEnd = (_: unknown, info: { offset: { x: number } }) => {
     if (isExiting) return;
     // Si superó el umbral, vuela hacia el lado
     if (info.offset.x > SWIPE_THRESHOLD) {
@@ -239,8 +250,44 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
 
   const nextPub = publications[1];
 
+  /* ================================================================
+   * EMPTY STATE — Compartido entre ambas vistas
+   * ================================================================ */
+  const emptyState = (
+    <div className="flex flex-col items-center justify-center p-10 text-center">
+      <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+        <Bot className="w-10 h-10 text-primary animate-bounce" />
+      </div>
+      <h3 className="text-xl font-bold mb-2 text-foreground">¡Todo al día!</h3>
+      <p className="text-muted-foreground text-sm max-w-[250px] mb-8">
+        No tienes publicaciones pendientes de revisión en este momento.
+      </p>
+      <Button asChild variant="outline" size="sm" className="gap-2">
+        <Link href="/dashboard/tarjetas">
+          Ver mis tarjetas
+        </Link>
+      </Button>
+    </div>
+  );
+
+  /* ================================================================
+   * VISTA GRID — Cards compactas en cuadrícula con scroll
+   * ================================================================ */
+  if (viewMode === "grid") {
+    return (
+      <GridView
+        publications={publications}
+        setPublications={setPublications}
+        emptyState={emptyState}
+      />
+    );
+  }
+
+  /* ================================================================
+   * VISTA SWIPE (Original) — Stack de tarjetas con drag
+   * ================================================================ */
   return (
-    <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-220px)] min-h-[400px] overflow-hidden -mt-2 relative">
+    <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-260px)] min-h-[400px] overflow-hidden -mt-2 relative">
       {/* Particles Container */}
       <div className="absolute inset-0 pointer-events-none z-[100] flex items-center justify-center">
         <AnimatePresence>
@@ -265,20 +312,9 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       </div>
 
       <div className="relative w-full max-w-md px-4 sm:px-0 h-full max-h-[550px]">
-        {/* 1. Fondo de "Todo listo" - Mejorado */}
+        {/* 1. Fondo de "Todo listo" */}
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-0">
-            <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-              <Bot className="w-10 h-10 text-primary animate-bounce" />
-            </div>
-            <h3 className="text-xl font-bold mb-2 text-foreground">¡Todo al día!</h3>
-            <p className="text-muted-foreground text-sm max-w-[250px] mb-8">
-              No tienes publicaciones pendientes de revisión en este momento.
-            </p>
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/dashboard/tarjetas">
-                Ver mis tarjetas
-              </Link>
-            </Button>
+          {emptyState}
         </div>
 
         {/* 2. Segunda Tarjeta */}
@@ -307,6 +343,154 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+
+/* ================================================================
+ * GRID VIEW — Componente separado para la vista de cuadrícula
+ * ================================================================ */
+
+function GridView({
+  publications: initialPubs,
+  setPublications: setParentPubs,
+  emptyState,
+}: {
+  publications: PublicationWithCard[];
+  setPublications: React.Dispatch<React.SetStateAction<PublicationWithCard[]>>;
+  emptyState: React.ReactNode;
+}) {
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+
+  const handleGridAction = async (pubId: string, action: "approve" | "reject") => {
+    setLoadingIds((prev) => new Set(prev).add(pubId));
+
+    try {
+      if (action === "approve") {
+        await approvePublication(pubId);
+        toast.success("Publicación aprobada", { position: "bottom-right" });
+      } else {
+        await rejectPublication(pubId);
+        toast.error("Publicación rechazada", { position: "bottom-right" });
+      }
+
+      // Remover de la lista con animación
+      setParentPubs((prev) => prev.filter((p) => p.id !== pubId));
+    } catch (e) {
+      console.error(e);
+      toast.error("Error al procesar la publicación");
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pubId);
+        return next;
+      });
+    }
+  };
+
+  if (initialPubs.length === 0) {
+    return emptyState;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
+      <AnimatePresence mode="popLayout">
+        {initialPubs.map((pub) => {
+          const isLoading = loadingIds.has(pub.id);
+          return (
+            <motion.div
+              key={pub.id}
+              layout
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
+              <Card className="border-border bg-card overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow duration-200 group">
+                {/* Header compacto */}
+                <CardHeader className="py-2 px-3.5 border-b shrink-0 bg-card">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="size-6 rounded-full bg-accent flex items-center justify-center text-[9px] font-bold shrink-0 border border-border/50">
+                        {pub.authorName?.charAt(0) || "F"}
+                      </div>
+                      <p className="text-[12px] font-semibold truncate">{pub.authorName || "Perfil de Facebook"}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[9px] text-muted-foreground font-medium">
+                        {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                      </span>
+                      <a
+                        href={pub.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                {/* Imagen */}
+                {pub.imageUrl && (
+                  <div className="w-full h-[140px] overflow-hidden bg-accent/5 border-b border-border/5">
+                    <img
+                      src={pub.imageUrl}
+                      alt="Post"
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                      draggable={false}
+                    />
+                  </div>
+                )}
+
+                {/* Contenido */}
+                <CardContent className="p-3.5 flex-1">
+                  <Badge variant="outline" className="text-[10px] font-medium mb-2 max-w-full truncate">
+                    {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || "Personal"}`}
+                  </Badge>
+                  <p className="text-[13px] leading-snug text-foreground/85 line-clamp-3 mt-1">
+                    {pub.content || "Contenido multimedia o no detectado."}
+                  </p>
+                </CardContent>
+
+                {/* Botones de acción */}
+                <CardFooter className="px-3.5 py-2.5 border-t bg-card/50 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 text-xs gap-1.5 border-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-colors"
+                    disabled={isLoading}
+                    onClick={() => handleGridAction(pub.id, "reject")}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <X className="w-3.5 h-3.5" />
+                    )}
+                    Rechazar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 transition-colors"
+                    disabled={isLoading}
+                    onClick={() => handleGridAction(pub.id, "approve")}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    Aprobar
+                  </Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
     </div>
   );
 }

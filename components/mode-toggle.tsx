@@ -8,17 +8,36 @@ import { Button } from "@/components/ui/button"
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        disabled
+        className="opacity-0"
+      >
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">Cambiar tema</span>
+      </Button>
+    )
+  }
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light")
   }
 
   return (
-    <Button 
-      variant="ghost" 
-      size="icon" 
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={toggleTheme}
-      className="text-zinc-400 hover:text-white transition-all duration-300"
+      className="text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-300"
       title="Cambiar tema"
     >
       <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

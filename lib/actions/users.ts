@@ -34,7 +34,7 @@ export async function createUser(data: any) {
   const session = await auth()
   if (session?.user?.role !== "ADMIN") throw new Error("No autorizado")
 
-  const { name, username, email, password, role, status, cardLimit } = data
+  const { name, username, email, password, role, status, cardLimit, orderLimit } = data
 
   const { hash } = await import("bcryptjs")
   const hashedPassword = await hash(password, 10)
@@ -47,7 +47,8 @@ export async function createUser(data: any) {
       password: hashedPassword,
       role: role as any,
       status: status as any,
-      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit)
+      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit),
+      orderLimit: isNaN(parseInt(orderLimit)) ? 0 : parseInt(orderLimit)
     }
   })
 
@@ -58,7 +59,7 @@ export async function updateUser(userId: string, data: any) {
   const session = await auth()
   if (session?.user?.role !== "ADMIN") throw new Error("No autorizado")
 
-  const { name, role, status, cardLimit } = data
+  const { name, role, status, cardLimit, orderLimit } = data
 
   await prisma.user.update({
     where: { id: userId },
@@ -66,7 +67,8 @@ export async function updateUser(userId: string, data: any) {
       name,
       role: role as any,
       status: status as any,
-      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit)
+      cardLimit: isNaN(parseInt(cardLimit)) ? 10 : parseInt(cardLimit),
+      orderLimit: isNaN(parseInt(orderLimit)) ? 0 : parseInt(orderLimit)
     }
   })
 

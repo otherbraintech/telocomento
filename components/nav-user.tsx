@@ -21,9 +21,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
-import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon, MoonIcon, SunIcon } from "lucide-react"
 
 import { signOut } from "next-auth/react"
+import { useTheme } from "next-themes"
 
 export function NavUser({
   user,
@@ -35,6 +36,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { theme, setTheme } = useTheme()
 
   return (
     <SidebarMenu>
@@ -57,7 +59,7 @@ export function NavUser({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-zinc-950 text-white border-zinc-800"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-background text-foreground border-border"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -74,22 +76,33 @@ export function NavUser({
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-zinc-800" />
+            <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <Link href="/dashboard/perfil">
-                <DropdownMenuItem className="hover:bg-zinc-900 cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer">
                   <BadgeCheckIcon className="mr-2 h-4 w-4" />
                   Cuenta
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem className="hover:bg-zinc-900 cursor-pointer">
+              <DropdownMenuItem className="cursor-pointer">
                 <BellIcon className="mr-2 h-4 w-4" />
                 Notificaciones
               </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              >
+                {theme === "light" ? (
+                  <MoonIcon className="mr-2 h-4 w-4" />
+                ) : (
+                  <SunIcon className="mr-2 h-4 w-4" />
+                )}
+                {theme === "light" ? "Modo Oscuro" : "Modo Claro"}
+              </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator className="bg-zinc-800" />
-            <DropdownMenuItem 
-              className="hover:bg-red-950 text-red-500 cursor-pointer"
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive"
               onClick={() => signOut({ callbackUrl: "/login" })}
             >
               <LogOutIcon className="mr-2 h-4 w-4" />

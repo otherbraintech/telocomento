@@ -39,10 +39,20 @@ export default async function DashboardPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session?.user?.id },
-    select: { cardLimit: true }
+    select: {
+      cardLimit: true,
+      orderLimit: true,
+      _count: {
+        select: {
+          orders: { where: { status: { notIn: ["CANCELLED", "COMPLETED"] } } }
+        }
+      }
+    }
   });
 
   const cardLimit = user?.cardLimit || 10;
+  const orderLimit = user?.orderLimit || 0;
+  const userActiveOrders = user?._count.orders || 0;
 
   return (
     <div className="space-y-6">
@@ -102,7 +112,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="hover:bg-accent/5 transition-colors shadow-none border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cuota de Tarjetas</CardTitle>
@@ -112,6 +122,19 @@ export default async function DashboardPage() {
             <div className="text-2xl font-bold">{userCardsCount} / {cardLimit}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {activeCardsCount} tarjetas activas actualmente
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:bg-accent/5 transition-colors shadow-none border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cuota de Órdenes</CardTitle>
+            <MessageSquareQuote className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userActiveOrders} / {orderLimit}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {orderLimit - userActiveOrders} órdenes disponibles
             </p>
           </CardContent>
         </Card>

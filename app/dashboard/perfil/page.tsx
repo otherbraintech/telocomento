@@ -13,13 +13,20 @@ export default async function PerfilPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      _count: { select: { scrapingCards: true } }
+      _count: { select: {
+        scrapingCards: true,
+        orders: true
+      } }
     }
   });
 
-  const currentCount = user?._count.scrapingCards || 0;
-  const limit = user?.cardLimit || 0;
-  const percentage = Math.min(100, (currentCount / limit) * 100);
+  const currentCards = user?._count.scrapingCards || 0;
+  const cardLimit = user?.cardLimit || 0;
+  const cardPercentage = cardLimit > 0 ? Math.min(100, (currentCards / cardLimit) * 100) : 0;
+
+  const currentOrders = user?._count.orders || 0;
+  const orderLimit = user?.orderLimit || 0;
+  const orderPercentage = orderLimit > 0 ? Math.min(100, (currentOrders / orderLimit) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -35,22 +42,33 @@ export default async function PerfilPage() {
           <CardHeader>
             <CardTitle>Capacidad de Monitoreo</CardTitle>
             <CardDescription>
-              Resumen de tu cuota de tarjetas permitidas.
+              Resumen de tus cuotas de tarjetas y órdenes permitidas.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Tarjetas de Monitoreo */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Tarjetas de Monitoreo</Label>
-                <span className="text-sm font-medium">{currentCount} / {limit}</span>
+                <span className="text-sm font-medium">{currentCards} / {cardLimit}</span>
               </div>
-              <Progress value={percentage} className="h-2" />
+              <Progress value={cardPercentage} className="h-2" />
               <p className="text-[10px] text-muted-foreground italic text-right">
-                {limit - currentCount} espacios disponibles
+                {cardLimit - currentCards} espacios disponibles
               </p>
             </div>
 
-
+            {/* Órdenes Creadas */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Órdenes Creadas</Label>
+                <span className="text-sm font-medium">{currentOrders} / {orderLimit}</span>
+              </div>
+              <Progress value={orderPercentage} className="h-2" />
+              <p className="text-[10px] text-muted-foreground italic text-right">
+                {orderLimit - currentOrders} órdenes disponibles
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

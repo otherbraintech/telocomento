@@ -18,6 +18,7 @@ export default async function AdminPublicacionesPage() {
       scrapingCard: {
         include: { user: true }
       },
+      user: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -50,9 +51,13 @@ export default async function AdminPublicacionesPage() {
               <tbody className="[&_tr:last-child]:border-0">
                 {publications.map((pub: any) => (
                   <tr key={pub.id} className="border-b transition-colors hover:bg-muted/50">
-                    <td className="p-4 align-middle font-medium">{pub.scrapingCard.user.name}</td>
+                    <td className="p-4 align-middle font-medium">
+                      {pub.scrapingCard?.user?.name || pub.user?.name || "Desconocido"}
+                    </td>
                     <td className="p-4 align-middle">
-                      <Badge variant="outline">{pub.scrapingCard.keyword}</Badge>
+                      <Badge variant="outline">
+                        {pub.scrapingCard?.keyword || "Manual"}
+                      </Badge>
                     </td>
                     <td className="p-4 align-middle">{pub.authorName}</td>
                     <td className="p-4 align-middle max-w-[200px] truncate">{pub.content}</td>

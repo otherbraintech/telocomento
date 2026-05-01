@@ -26,6 +26,16 @@ export async function createOrderFromPublication(publicationId: string, intent: 
   const session = await auth();
   if (!session?.user?.id) throw new Error("No autorizado");
 
+  // Validar límite de órdenes del usuario
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { orderLimit: true, _count: { select: { orders: { where: { status: { notIn: ["CANCELLED", "COMPLETED"] } } } } } }
+  });
+
+  if (user && user._count.orders >= user.orderLimit) {
+    throw new Error(`Has alcanzado el límite de ${user.orderLimit} órdenes activas. Contacta al administrador para aumentar tu capacidad.`);
+  }
+
   const publication = await prisma.publication.findUnique({ where: { id: publicationId } });
   if (!publication) throw new Error("Publicación no encontrada");
 

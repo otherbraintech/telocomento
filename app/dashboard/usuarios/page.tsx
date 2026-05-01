@@ -23,6 +23,7 @@ export default async function UsuariosPage() {
       role: true,
       status: true,
       cardLimit: true,
+      orderLimit: true,
       isRequestingTickets: true,
       createdAt: true,
     }
@@ -33,7 +34,7 @@ export default async function UsuariosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Gestión de Usuarios</h1>
-          <p className="text-sm text-muted-foreground">Administra las cuentas, estados y límites de tarjetas.</p>
+          <p className="text-sm text-muted-foreground">Administra las cuentas, estados y límites de tarjetas y órdenes.</p>
         </div>
         <UserDialog />
       </div>
@@ -48,7 +49,8 @@ export default async function UsuariosPage() {
               <thead className="[&_tr]:border-b">
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Usuario</th>
-                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-center">Tickets</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-center">Tarjetas</th>
+                  <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-center">Órdenes</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Rol</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Estado</th>
                   <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Acciones</th>
@@ -72,6 +74,9 @@ export default async function UsuariosPage() {
                     </td>
                     <td className="p-4 align-middle text-center">
                       <span className="font-mono font-bold text-lg">{user.cardLimit}</span>
+                    </td>
+                    <td className="p-4 align-middle text-center">
+                      <span className="font-mono font-bold text-lg">{user.orderLimit}</span>
                     </td>
                     <td className="p-4 align-middle">
                       <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
