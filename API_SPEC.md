@@ -1,66 +1,100 @@
-# Especificación de API para Bots
+# Especificación de API: TeloComento
 
-Este documento detalla los endpoints utilizados por el servicio externo de bots para obtener y actualizar el estado de los comentarios.
+Este documento detalla los endpoints utilizados por los servicios externos (Scraper y Bots) para interactuar con la plataforma.
 
 ## Autenticación
 Todas las peticiones deben incluir el header `X-API-KEY`.
-`X-API-KEY: super-secreto-123` (Valor configurado en `BOTS_API_KEY`)
+`X-API-KEY: super-secreto-123` (Configurable en el entorno).
 
 ---
 
-## 1. Obtener Comentarios Pendientes
-Retorna una lista de comentarios que están listos para ser publicados y tienen un dispositivo asignado.
+## 1. Módulo de Scraping
 
-**Endpoint:** `GET /api/orders/pending`
+### A. Obtener Objetivos de Scraping
+Retorna la lista de palabras clave (Tarjetas) y perfiles de usuario que el scraper debe rastrear.
 
-**Query Params:**
-- `type` (opcional): `POSITIVE` o `NEGATIVE` para filtrar por intención de la orden.
+**Endpoint:** `GET /api/scraper/cards`
 
 **Respuesta (200 OK):**
 ```json
 [
   {
-    "commentId": "cmohxktop0001mslh5cnfu7xt",
-    "orderId": "cmohxkrji0000mslh3s5ifs3b",
-    "content": "Contenido del comentario...",
-    "publicationUrl": "https://www.facebook.com/share/v/...",
-    "deviceSerial": "ce02171298a9940704",
-    "deviceAlias": "Teléfono 940704"
+    "id": "card_123",
+    "type": "CARD",
+    "query": "Venta de autos",
+    "context": "Solo autos deportivos en CDMX"
+  },
+  {
+    "id": "user_456",
+    "type": "PROFILE",
+    "query": "Juan Pérez",
+    "context": "Perfil personal de un emprendedor..."
   }
 ]
 ```
 
-> [!NOTE]
-> Solo se retornan comentarios que tienen un `deviceId` (bot) asignado. Si una orden tiene comentarios sin bot, estos no se incluirán en la respuesta.
+### B. Ingesta de Hallazgos
+El scraper envía las publicaciones encontradas.
+
+**Endpoint:** `POST /api/ingest`
+
+**Body:**
+```json
+{
+  "scrapingCardId": "card_123", // Opcional si se usa userId
+  "userId": "user_456",        // Opcional si se usa scrapingCardId
+  "sourceUrl": "https://facebook.com/...",
+  "authorName": "Nombre del Autor",
+  "content": "Texto de la publicación...",
+  "imageUrl": "https://...",
+  "publishedAt": "2024-05-01T10:00:00Z"
+}
+```
 
 ---
 
-## 2. Actualizar Estado de Comentario
-Actualiza el estado de un comentario después de intentar publicarlo.
+## 2. Módulo de Bots
+
+### A. Comentarios Pendientes
+Retorna comentarios listos para ser publicados con bot asignado.
+
+**Endpoint:** `GET /api/orders/pending`
+
+**Respuesta (200 OK):**
+```json
+[
+  {
+    "commentId": "comm_789",
+    "orderId": "order_001",
+    "content": "¡Qué buen post!",
+    "publicationUrl": "https://facebook.com/...",
+    "deviceSerial": "SN123456",
+    "deviceAlias": "Bot-1"
+  }
+]
+```
+
+### B. Reporte de Ejecución
+Actualiza el estado de un comentario después del intento de publicación.
 
 **Endpoint:** `PATCH /api/comments/:id`
 
 **Body:**
 ```json
 {
-  "status": "PUBLISHED" | "ERROR"
+  "status": "PUBLISHED" | "ERROR",
+  "errorDetails": "Opcional: mensaje de error si falló"
 }
 ```
-
-**Comportamiento:**
-- Si el estado es `PUBLISHED`, se registra la fecha en `commentedAt`.
-- Si el dispositivo no tiene más comentarios pendientes, se marca como `LIBRE`.
-- Si todos los comentarios de una orden se han procesado, la orden se marca como `COMPLETED`.
 
 ---
 
 ## Estados de Comentario
-- `PENDING`: Generado y esperando ser procesado por el bot.
-- `SENT`: (Opcional) Puede usarse para indicar que el bot ya tomó la tarea.
-- `PUBLISHED`: Confirmado como publicado por el bot.
-- `ERROR`: Falló el intento de publicación.
+- `PENDING`: Generado, esperando bot.
+- `SENT`: Tomado por un bot (en proceso).
+- `PUBLISHED`: Confirmado en la red social.
+- `ERROR`: Falló la publicación.
 
-## Notas de Implementación
-- **Un Bot por Orden**: El sistema garantiza que un mismo dispositivo (bot) no sea asignado a más de un comentario dentro de la misma orden.
-- **Estado Persistente**: El endpoint `GET /api/orders/pending` **NO** cambia el estado de los comentarios a `SENT` automáticamente. Los comentarios permanecen en `PENDING` hasta que el servicio de bots reporte un nuevo estado vía `PATCH`.
-- **Filtrado Automático**: Solo se retornan comentarios con `deviceId` asignado.
+## Notas de Seguridad
+- El acceso está restringido por IP si se configura en el firewall.
+- Las URLs de imágenes deben ser accesibles públicamente o vía proxy configurado.

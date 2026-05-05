@@ -5,7 +5,7 @@ import { auth } from "@/auth"
 import { revalidatePath } from "next/cache"
 import { hash } from "bcryptjs"
 
-export async function updateProfile(data: { name: string; username: string; bio?: string }) {
+export async function updateProfile(data: { name: string; username: string; bio?: string; aiTone?: string }) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("No autorizado")
 
@@ -14,7 +14,8 @@ export async function updateProfile(data: { name: string; username: string; bio?
     data: {
       name: data.name,
       username: data.username,
-      bio: data.bio
+      bio: data.bio,
+      aiTone: data.aiTone
     }
   })
 

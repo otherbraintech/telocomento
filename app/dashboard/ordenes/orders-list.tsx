@@ -28,10 +28,21 @@ import {
   ThumbsUp,
   ThumbsDown,
   StickyNote,
+  ListRestart,
+  History,
+  Loader2,
 } from "lucide-react";
-import { generateOrderComments, startOrder, stopOrder, cancelOrder } from "@/lib/actions/orders";
+import { generateOrderComments, startOrder, stopOrder, cancelOrder, getOrderLogs } from "@/lib/actions/orders";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import Link from "next/link";
 
@@ -62,7 +73,23 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
   const [orders, setOrders] = useState(initialOrders);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [confirmStartId, setConfirmStartId] = useState<string | null>(null);
+  const [logsOrderId, setLogsOrderId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
   const router = useRouter();
+
+  const handleShowLogs = async (id: string) => {
+    setLogsOrderId(id);
+    setLoadingLogs(true);
+    try {
+      const data = await getOrderLogs(id);
+      setLogs(data);
+    } catch (e) {
+      toast.error("Error al cargar los logs");
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
   const handleGenerate = async (id: string) => {
     setLoadingId(id);
@@ -297,6 +324,17 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
                       </Button>
                     ) : null}
 
+                  <div className="grid grid-cols-2 gap-2 w-full">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 font-semibold gap-1.5"
+                      onClick={() => handleShowLogs(order.id)}
+                    >
+                      <History className="size-3.5" />
+                      Historial
+                    </Button>
+
                     {order.status !== "CANCELLED" && order.status !== "COMPLETED" && (
                       <Button 
                         size="sm" 
@@ -337,6 +375,71 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Logs */}
+      <Dialog open={!!logsOrderId} onOpenChange={(open) => !open && setLogsOrderId(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="flex items-center gap-2">
+              <History className="size-5 text-primary" />
+              Historial de Ejecución
+            </DialogTitle>
+            <DialogDescription>
+              Seguimiento detallado de los comentarios y su estado de publicación.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 p-6">
+            <div className="space-y-4">
+              {loadingLogs ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <Loader2 className="size-8 animate-spin text-primary/50" />
+                  <p className="text-sm text-muted-foreground">Cargando actividad...</p>
+                </div>
+              ) : logs.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground italic">
+                  No hay actividad registrada aún para esta orden.
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div key={log.id} className="relative pl-6 border-l-2 border-muted pb-4 last:pb-0">
+                    <div className={`absolute left-[-9px] top-0 size-4 rounded-full border-2 border-background ${
+                      log.status === 'PUBLISHED' ? 'bg-green-500' : 
+                      log.status === 'ERROR' ? 'bg-destructive' : 
+                      log.status === 'SENT' ? 'bg-blue-500 animate-pulse' : 'bg-muted'
+                    }`} />
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {log.status === 'PUBLISHED' ? 'Publicado' : 
+                           log.status === 'ERROR' ? 'Error de Ejecución' : 
+                           log.status === 'SENT' ? 'Enviando...' : 'Pendiente'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {log.commentedAt ? new Date(log.commentedAt).toLocaleString() : '—'}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed text-foreground/80 line-clamp-2 italic">
+                        &ldquo;{log.content}&rdquo;
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] font-medium text-primary">
+                        <Zap className="size-2.5" />
+                        Ejecutado por: {log.device}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+          
+          <div className="p-4 border-t bg-muted/30 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setLogsOrderId(null)}>
+              Cerrar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

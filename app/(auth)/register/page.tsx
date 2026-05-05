@@ -6,6 +6,9 @@ export default function RegisterPage() {
   return (
     <Card className="shadow-lg border-border/50">
       <CardHeader className="space-y-1">
+        <div className="flex justify-center mb-4">
+          <img src="/iconTeloComento.svg" className="size-20 object-contain" alt="Logo" />
+        </div>
         <CardTitle className="text-2xl text-center">Crear Cuenta</CardTitle>
         <CardDescription className="text-center">
           Regístrate para empezar a monitorear con TeloComento

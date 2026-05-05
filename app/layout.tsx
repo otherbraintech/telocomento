@@ -6,6 +6,10 @@ import { Toaster } from "sonner"
 export const metadata: Metadata = {
   title: "TeloComento",
   description: "Monitoreo y bots de respuesta automática.",
+  icons: {
+    icon: "/iconTeloComento.svg",
+    apple: "/iconTeloComento.svg",
+  }
 };
 
 export default function RootLayout({
@@ -19,7 +23,7 @@ export default function RootLayout({
       className="h-full antialiased"
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans"> {/* v1.0.1 */}
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

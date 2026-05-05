@@ -10,7 +10,8 @@ import {
   Settings,
   Bot,
   ShoppingCart,
-  Smartphone
+  Smartphone,
+  HelpCircle,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -28,7 +29,7 @@ const data = {
   teams: [
     {
       name: "TeloComento",
-      logo: <Bot className="size-4" />,
+      logo: <img src="/iconTeloComento.svg" className="size-6 object-contain" alt="Logo" />,
       plan: "Pro Plan",
     },
   ],
@@ -68,6 +69,11 @@ const data = {
       title: "Mi Perfil",
       url: "/dashboard/perfil",
       icon: <Settings className="size-4" />,
+    },
+    {
+      title: "Guía de Uso",
+      url: "/dashboard/ayuda",
+      icon: <HelpCircle className="size-4" />,
     },
   ],
   adminNav: [

@@ -16,6 +16,9 @@ export default function LoginPage() {
   return (
     <Card className="shadow-lg border-border/50">
       <CardHeader className="space-y-1">
+        <div className="flex justify-center mb-4">
+          <img src="/iconTeloComento.svg" className="size-20 object-contain" alt="Logo" />
+        </div>
         <CardTitle className="text-2xl text-center">TeloComento</CardTitle>
         <CardDescription className="text-center">
           Ingresa tus credenciales para continuar

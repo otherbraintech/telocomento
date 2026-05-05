@@ -3,6 +3,7 @@
 import { Switch } from "@/components/ui/switch"
 import { toggleTarjetaStatus } from "@/lib/actions/tarjetas"
 import { useTransition } from "react"
+import { toast } from "sonner"
 
 interface Props {
   cardId: string
@@ -18,7 +19,13 @@ export function TarjetaStatusToggle({ cardId, status }: Props) {
     formData.append("currentStatus", status)
     
     startTransition(async () => {
-      await toggleTarjetaStatus(formData)
+      const result = await toggleTarjetaStatus(formData)
+      
+      if (result?.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(`Tarjeta ${status === 'ACTIVE' ? 'desactivada' : 'activada'} correctamente`)
+      }
     })
   }
 

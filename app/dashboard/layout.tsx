@@ -46,9 +46,9 @@ export default async function DashboardLayout({
       <TooltipProvider>
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-foreground p-4">
           <div className="max-w-md w-full space-y-6 text-center">
-            <div className="mx-auto size-16 bg-muted rounded-full flex items-center justify-center">
-              <span className="text-2xl">⏳</span>
-            </div>
+          <div className="mx-auto flex items-center justify-center mb-6">
+            <img src="/iconTeloComento.svg" className="size-24 object-contain animate-pulse" alt="Logo" />
+          </div>
             <div className="space-y-2">
               <h1 className="text-2xl font-bold tracking-tight">Cuenta en revisión</h1>
               <p className="text-muted-foreground">

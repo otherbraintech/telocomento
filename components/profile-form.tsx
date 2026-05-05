@@ -11,6 +11,14 @@ import { Edit, Save, X, Lock, Check } from "lucide-react"
 import { updateProfile, updatePassword } from "@/lib/actions/profile"
 import { toast } from "sonner"
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 interface ProfileFormProps {
   user: any
 }
@@ -23,7 +31,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     username: user?.username || "",
-    bio: user?.bio || ""
+    bio: user?.bio || "",
+    aiTone: user?.aiTone || "Profesional"
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -104,7 +113,28 @@ export function ProfileForm({ user }: ProfileFormProps) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="bio">Biografía</Label>
+            <Label htmlFor="aiTone">Tono de Voz de la IA</Label>
+            <Select 
+              value={formData.aiTone} 
+              onValueChange={(val) => setFormData({ ...formData, aiTone: val })}
+              disabled={!isEditing || isLoading}
+            >
+              <SelectTrigger id="aiTone" className="w-full">
+                <SelectValue placeholder="Selecciona un tono" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Profesional">Profesional (Serio y respetuoso)</SelectItem>
+                <SelectItem value="Cercano">Cercano (Amigable y directo)</SelectItem>
+                <SelectItem value="Sarcástico">Sarcástico (Irónico y divertido)</SelectItem>
+                <SelectItem value="Persuasivo">Persuasivo (Enfocado en ventas)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground italic">
+              Este tono se aplicará a todos los comentarios generados automáticamente por la IA.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="bio">Biografía / Contexto Personal</Label>
             <Textarea
               id="bio"
               value={formData.bio}
@@ -114,7 +144,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               className="min-h-[100px] resize-none"
             />
             <p className="text-[10px] text-muted-foreground italic">
-              Esta información será usada por nuestro scraper para encontrar contenido relevante en Facebook.
+              Esta información ayuda a la IA a personalizar las respuestas según quién eres.
             </p>
           </div>
           <div className="grid gap-2">

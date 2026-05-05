@@ -63,18 +63,18 @@ export async function toggleTarjetaStatus(formData: FormData) {
     await prisma.scrapingCard.update({
       where: {
         id: cardId,
-        userId: session.user.id, // Ensure user owns the card
+        userId: session.user.id,
       },
       data: {
         status: newStatus,
       },
     });
+    revalidatePath("/dashboard/tarjetas");
+    return { success: true, newStatus };
   } catch (error) {
     console.error("Error toggling status:", error);
+    return { error: "No se pudo actualizar el estado de la tarjeta" };
   }
-
-  // Use revalidatePath or let redirect refresh the page
-  redirect("/dashboard/tarjetas");
 }
 
 export async function updateTarjeta(cardId: string, data: { keyword: string; context?: string }) {

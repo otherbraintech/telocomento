@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { rejectPublication, approvePublication } from "@/lib/actions/publications";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Bot, Loader2 } from "lucide-react";
+import { Check, X, ExternalLink, Bot, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type PublicationWithCard = {
   id: string;
@@ -35,15 +36,58 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
   const [isExiting, setIsExiting] = useState(false);
   const [viewMode, setViewMode] = useState<"swipe" | "grid">("swipe");
+  const [combo, setCombo] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filtrar publicaciones basadas en la búsqueda
+  const filteredPublications = publications.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.authorName?.toLowerCase().includes(query) ||
+      p.content?.toLowerCase().includes(query) ||
+      p.scrapingCard?.keyword.toLowerCase().includes(query)
+    );
+  });
+
+  // El activePub debe ser el primero de la lista filtrada
+  const displayPub = viewMode === "swipe" ? filteredPublications[0] : null;
+
+  // Atajos de teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewMode !== "swipe" || isPending || isExiting || !activePub) return;
+      
+      if (e.key === "ArrowRight") {
+        handleApprove();
+      } else if (e.key === "ArrowLeft") {
+        handleReject();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [viewMode, isPending, isExiting, activePub]);
 
   // Escuchar cambio de vista desde el toolbar
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<"swipe" | "grid">).detail;
       setViewMode(detail);
+      setCombo(0); // Reset combo on view change
     };
     window.addEventListener("review-view-change", handler);
     return () => window.removeEventListener("review-view-change", handler);
+  }, []);
+
+  // Escuchar búsqueda
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      setSearchQuery(detail);
+    };
+    window.addEventListener("review-search", handler);
+    return () => window.removeEventListener("review-search", handler);
   }, []);
 
   // Umbral alto para evitar swipes accidentales
@@ -99,9 +143,16 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
     // Partículas y toast inmediato
     if (direction === "right") {
       triggerParticles("#22c55e");
-      toast.success("Publicación aprobada", { position: "bottom-right" });
+      setCombo(prev => prev + 1);
+      const currentCombo = combo + 1;
+      if (currentCombo > 2) {
+        toast.success(`¡Combo x${currentCombo}! 🔥`, { position: "bottom-right", duration: 1000 });
+      } else {
+        toast.success("Publicación aprobada", { position: "bottom-right" });
+      }
     } else {
       triggerParticles("#ef4444");
+      setCombo(0); // El rechazo rompe el combo o podemos decidir que no
       toast.error("Publicación rechazada", { position: "bottom-right" });
     }
 
@@ -276,7 +327,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   if (viewMode === "grid") {
     return (
       <GridView
-        publications={publications}
+        publications={filteredPublications}
         setPublications={setPublications}
         emptyState={emptyState}
       />
@@ -291,6 +342,22 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       {/* Particles Container */}
       <div className="absolute inset-0 pointer-events-none z-[100] flex items-center justify-center">
         <AnimatePresence>
+          {combo > 1 && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              key="combo-badge"
+              className="absolute top-10 flex flex-col items-center pointer-events-none"
+            >
+              <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-xl font-black shadow-lg border-2 border-white animate-bounce">
+                COMBO x{combo}
+              </div>
+              <div className="text-[10px] font-bold text-primary uppercase mt-1 drop-shadow-sm">
+                ¡Racha de aprobación!
+              </div>
+            </motion.div>
+          )}
           {particles.map((particle) => (
             <motion.div
               key={particle.id}
@@ -314,21 +381,27 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       <div className="relative w-full max-w-md px-4 sm:px-0 h-full max-h-[550px]">
         {/* 1. Fondo de "Todo listo" */}
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-0">
-          {emptyState}
+          {filteredPublications.length === 0 && searchQuery ? (
+            <div className="flex flex-col items-center justify-center p-10 text-center">
+               <Search className="w-10 h-10 text-muted-foreground/30 mb-4" />
+               <h3 className="text-lg font-bold">Sin resultados</h3>
+               <p className="text-sm text-muted-foreground">No hay publicaciones que coincidan con "{searchQuery}"</p>
+            </div>
+          ) : emptyState}
         </div>
 
         {/* 2. Segunda Tarjeta */}
-        {activePub && nextPub && (
+        {displayPub && filteredPublications[1] && (
           <div className="absolute top-2 left-3 right-3 h-[97%] z-20" style={{ transform: 'scale(0.96)' }}>
-            {renderCardContent(nextPub, true)}
+            {renderCardContent(filteredPublications[1], true)}
           </div>
         )}
 
         {/* 3. Tarjeta Activa — sin dragConstraints para que no rebote */}
         <AnimatePresence mode="popLayout">
-          {activePub && !isExiting && (
+          {displayPub && !isExiting && (
             <motion.div
-              key={activePub.id}
+              key={displayPub.id}
               style={{ x, rotate, opacity: cardOpacity }}
               drag={isPending ? false : "x"}
               dragElastic={0.7}
@@ -338,7 +411,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
               animate={{ scale: 1, opacity: 1, y: 0 }}
               className="absolute top-4 left-0 right-0 h-[calc(100%-12px)] z-30 cursor-grab active:cursor-grabbing px-1 sm:px-0"
             >
-              {renderCardContent(activePub, false, handleApprove, handleReject)}
+              {renderCardContent(displayPub, false, handleApprove, handleReject)}
             </motion.div>
           )}
         </AnimatePresence>
@@ -362,6 +435,42 @@ function GridView({
   emptyState: React.ReactNode;
 }) {
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === initialPubs.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(initialPubs.map((p) => p.id)));
+  };
+
+  const handleBatchAction = async (action: "approve" | "reject") => {
+    if (selectedIds.size === 0) return;
+    setIsBatchLoading(true);
+    const idsToProcess = Array.from(selectedIds);
+    
+    toast.promise(
+      Promise.all(idsToProcess.map(id => action === "approve" ? approvePublication(id) : rejectPublication(id))),
+      {
+        loading: `${action === "approve" ? "Aprobando" : "Rechazando"} ${selectedIds.size} publicaciones...`,
+        success: () => {
+          setParentPubs(prev => prev.filter(p => !selectedIds.has(p.id)));
+          setSelectedIds(new Set());
+          return `${selectedIds.size} publicaciones ${action === "approve" ? "aprobadas" : "rechazadas"}`;
+        },
+        error: "Error al procesar el lote",
+      }
+    );
+    setIsBatchLoading(false);
+  };
 
   const handleGridAction = async (pubId: string, action: "approve" | "reject") => {
     setLoadingIds((prev) => new Set(prev).add(pubId));
@@ -375,8 +484,12 @@ function GridView({
         toast.error("Publicación rechazada", { position: "bottom-right" });
       }
 
-      // Remover de la lista con animación
       setParentPubs((prev) => prev.filter((p) => p.id !== pubId));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pubId);
+        return next;
+      });
     } catch (e) {
       console.error(e);
       toast.error("Error al procesar la publicación");
@@ -394,10 +507,51 @@ function GridView({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
-      <AnimatePresence mode="popLayout">
-        {initialPubs.map((pub) => {
-          const isLoading = loadingIds.has(pub.id);
+    <div className="space-y-4 pb-8">
+      {/* Batch Actions Toolbar */}
+      <div className="flex items-center justify-between bg-accent/50 p-2 rounded-lg border border-border/50 sticky top-0 z-10 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+           <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">
+             {selectedIds.size === initialPubs.length ? "Deseleccionar todo" : "Seleccionar todo"}
+           </Button>
+           {selectedIds.size > 0 && (
+             <span className="text-xs font-bold text-primary">
+               {selectedIds.size} seleccionadas
+             </span>
+           )}
+        </div>
+        <div className="flex items-center gap-2">
+           {selectedIds.size > 0 && (
+             <>
+               <Button 
+                 variant="destructive" 
+                 size="sm" 
+                 className="h-8 text-xs gap-1.5" 
+                 disabled={isBatchLoading}
+                 onClick={() => handleBatchAction("reject")}
+               >
+                 <X className="w-3.5 h-3.5" />
+                 Rechazar lote
+               </Button>
+               <Button 
+                 size="sm" 
+                 className="h-8 text-xs gap-1.5" 
+                 disabled={isBatchLoading}
+                 onClick={() => handleBatchAction("approve")}
+               >
+                 <Check className="w-3.5 h-3.5" />
+                 Aprobar lote
+               </Button>
+             </>
+           )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence mode="popLayout">
+          {initialPubs.map((pub) => {
+            const isLoading = loadingIds.has(pub.id);
+            const isSelected = selectedIds.has(pub.id);
           return (
             <motion.div
               key={pub.id}
@@ -406,8 +560,20 @@ function GridView({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -10 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative group"
             >
-              <Card className="border-border bg-card overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow duration-200 group">
+              <div 
+                className={`absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors ${isSelected ? 'bg-primary/5 ring-2 ring-primary/50' : 'hover:bg-accent/5'}`}
+                onClick={() => toggleSelection(pub.id)}
+              />
+              <div className="absolute top-2 left-2 z-20">
+                <Checkbox 
+                  checked={isSelected} 
+                  onCheckedChange={() => toggleSelection(pub.id)}
+                  className="border-white/50 bg-black/20"
+                />
+              </div>
+              <Card className={`border-border bg-card overflow-hidden flex flex-col h-full transition-shadow duration-200 ${isSelected ? 'shadow-md' : 'hover:shadow-lg'}`}>
                 {/* Header compacto */}
                 <CardHeader className="py-2 px-3.5 border-b shrink-0 bg-card">
                   <div className="flex items-center justify-between gap-2">
@@ -491,6 +657,7 @@ function GridView({
           );
         })}
       </AnimatePresence>
+    </div>
     </div>
   );
 }

@@ -347,3 +347,21 @@ export async function getOrderCommentsAdmin(orderId: string) {
     orderBy: { createdAt: "asc" }
   });
 }
+export async function getOrderLogs(orderId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("No autorizado");
+
+  const comments = await prisma.comment.findMany({
+    where: { orderId, order: { userId: session.user.id } },
+    include: { device: { select: { alias: true, serial: true } } },
+    orderBy: { commentedAt: "desc" }
+  });
+
+  return comments.map(c => ({
+    id: c.id,
+    content: c.content,
+    status: c.status,
+    commentedAt: c.commentedAt,
+    device: c.device?.alias || c.device?.serial || "Bot desconocido"
+  }));
+}

@@ -5,9 +5,9 @@ import { CardActions } from "@/components/card-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
 import Link from "next/link";
 import { RequestTicketsButton } from "@/components/request-tickets-button";
+import { NuevaTarjetaDialog } from "@/components/nueva-tarjeta-dialog";
 
 export default async function TarjetasPage() {
   const session = await auth();
@@ -22,12 +22,17 @@ export default async function TarjetasPage() {
     }
   });
 
+  const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const tarjetas = await prisma.scrapingCard.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     include: {
       _count: {
         select: { publications: true }
+      },
+      publications: {
+        where: { createdAt: { gte: last24h } },
+        select: { id: true }
       }
     }
   });
@@ -53,12 +58,7 @@ export default async function TarjetasPage() {
             <RequestTicketsButton isAlreadyRequesting={user?.isRequestingTickets || false} />
           )}
           {limit > 0 && (
-            <Button asChild disabled={remaining === 0}>
-              <Link href="/dashboard/tarjetas/nueva" className={remaining === 0 ? "pointer-events-none opacity-50" : ""}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nueva Tarjeta
-              </Link>
-            </Button>
+            <NuevaTarjetaDialog remaining={remaining} />
           )}
         </div>
       </div>
@@ -74,9 +74,7 @@ export default async function TarjetasPage() {
             ) : (
               <>
                 <p className="mb-4">No tienes ninguna tarjeta de monitoreo configurada.</p>
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/tarjetas/nueva">Crear la primera tarjeta</Link>
-                </Button>
+                <NuevaTarjetaDialog remaining={remaining} />
               </>
             )}
           </CardContent>
@@ -98,9 +96,16 @@ export default async function TarjetasPage() {
                 </p>
               </CardHeader>
               <CardContent className="flex-1">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Publicaciones encontradas: </span>
-                  <span className="font-medium">{tarjeta._count.publications}</span>
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Total: </span>
+                    <span className="font-medium">{tarjeta._count.publications}</span>
+                  </div>
+                  {tarjeta.publications.length > 0 && (
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20 transition-colors">
+                      +{tarjeta.publications.length} hoy
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
               <div className="border-t p-4 flex gap-2">

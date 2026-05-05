@@ -54,6 +54,7 @@ model User {
   status              UserStatus @default(INACTIVE)
   cardLimit           Int        @default(0) @map("card_limit")
   orderLimit          Int        @default(0) @map("order_limit")
+  aiTone              String?    @default("Profesional") @map("ai_tone")
   isRequestingTickets Boolean    @default(false) @map("is_requesting_tickets")
   accounts            Account[]
   sessions            Session[]

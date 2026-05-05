@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TeloComento: Plataforma de Monitoreo y Bots de IA
 
-## Getting Started
+TeloComento es una solución integral para el monitoreo estratégico de redes sociales y la interacción automatizada mediante bots inteligentes.
 
-First, run the development server:
+## 📚 Documentación del Proyecto
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Para entender a fondo cómo funciona la plataforma, consulta los siguientes documentos:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- 📋 **[Requisitos del Sistema](file:///d:/Users/ludwi/Documents/workspace/telocomento-app/REQUIREMENTS.md)**: Alcance funcional y técnico.
+- 🏗️ **[Arquitectura Técnica](file:///d:/Users/ludwi/Documents/workspace/telocomento-app/ARCHITECTURE.md)**: Stack tecnológico, estructura de datos e integraciones.
+- 🔄 **[Flujos de Usuario](file:///d:/Users/ludwi/Documents/workspace/telocomento-app/USER_FLOW.md)**: Diagramas de procesos (Scraping, Moderación, Bots).
+- 🔌 **[Especificación de API](file:///d:/Users/ludwi/Documents/workspace/telocomento-app/API_SPEC.md)**: Endpoints para servicios externos de scraping y bots.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Inicio Rápido
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Instala las dependencias:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Configura las variables de entorno en `.env` (usa `.env.example` como base).
 
-To learn more about Next.js, take a look at the following resources:
+3. Inicia la base de datos y genera el cliente de Prisma:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Ejecuta el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Desarrollado con Next.js 16, Prisma y Shadcn/UI.
