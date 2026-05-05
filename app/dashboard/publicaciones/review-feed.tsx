@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { rejectPublication, approvePublication } from "@/lib/actions/publications";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Bot, Loader2, Search } from "lucide-react";
+import { Check, X, ExternalLink, Bot, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { toast } from "sonner";
@@ -193,8 +193,8 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   // Transformaciones para los botones
   const rejectScale = useTransform(x, [-350, 0], [1.3, 1]);
   const approveScale = useTransform(x, [0, 350], [1, 1.3]);
-  const rejectBg = useTransform(x, [-350, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.05)"]);
-  const approveBg = useTransform(x, [0, 350], ["rgba(34 197 94, 0.05)", "rgb(34 197 94)"]);
+  const rejectBg = useTransform(x, [-350, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.15)"]);
+  const approveBg = useTransform(x, [0, 350], ["rgba(34 197 94, 0.15)", "rgb(34 197 94)"]);
   const rejectColor = useTransform(x, [-350, 0], ["#ffffff", "#ef4444"]);
   const approveColor = useTransform(x, [0, 350], ["#22c55e", "#ffffff"]);
 
@@ -226,26 +226,25 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
         )}
         
         <CardHeader className="py-2.5 px-5 border-b shrink-0 bg-card">
-          <div className="flex justify-between items-center mb-1.5">
-            <Badge variant="outline" className="max-w-[180px] truncate text-[11px] font-medium">
-              {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || 'Personal'}`}
-            </Badge>
+          <div className="flex justify-end items-center mb-1.5">
             {!isBackground && (
               <a href={pub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-1" onClick={(e) => e.stopPropagation()}>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold shrink-0 border border-border/50">
-                {pub.authorName?.charAt(0) || "F"}
+          <div className="flex flex-col gap-2">
+            <Badge variant="outline" className="w-fit text-[10px] font-medium py-0 h-5 border-primary/20 text-primary/80">
+              {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || 'Personal'}`}
+            </Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <p className="text-[14px] font-bold truncate max-w-[280px]">{pub.authorName || "Perfil de Facebook"}</p>
               </div>
-              <p className="text-[13px] font-semibold truncate max-w-[180px]">{pub.authorName || "Perfil de Facebook"}</p>
+              <span className="text-[9px] text-muted-foreground font-medium">
+                {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+              </span>
             </div>
-            <span className="text-[9px] text-muted-foreground font-medium">
-              {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-            </span>
           </div>
         </CardHeader>
 
@@ -270,7 +269,8 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
         <CardFooter className="flex justify-center gap-14 py-5 border-t shrink-0 bg-card/50">
           <motion.button
             style={!isBackground ? { scale: rejectScale, backgroundColor: rejectBg, color: rejectColor } : {}}
-            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-destructive/10 bg-destructive/5 text-destructive/30' : 'border-destructive/20'}`}
+            whileHover={!isBackground ? { scale: 1.15, backgroundColor: "rgb(239, 68, 68)", color: "#ffffff", borderColor: "rgb(239, 68, 68)" } : {}}
+            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-destructive/10 bg-destructive/5 text-destructive/30' : 'border-destructive/20 bg-destructive/10'}`}
             onClick={(e) => {
               if (!isBackground && onReject) {
                 e.stopPropagation();
@@ -283,7 +283,8 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
           </motion.button>
           <motion.button
             style={!isBackground ? { scale: approveScale, backgroundColor: approveBg, color: approveColor } : {}}
-            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-primary/10 bg-primary/5 text-primary/30' : 'border-primary/20'}`}
+            whileHover={!isBackground ? { scale: 1.15, backgroundColor: "rgb(34, 197, 94)", color: "#ffffff", borderColor: "rgb(34, 197, 94)" } : {}}
+            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-primary/10 bg-primary/5 text-primary/30' : 'border-primary/20 bg-primary/10'}`}
             onClick={(e) => {
               if (!isBackground && onApprove) {
                 e.stopPropagation();
@@ -339,6 +340,50 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
    * ================================================================ */
   return (
     <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-260px)] min-h-[400px] overflow-hidden -mt-2 relative">
+      {/* Swipe Hints - Premium Design */}
+      <div className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none hidden lg:flex flex-col items-center gap-4 z-0">
+        <div className="flex gap-0 mb-1">
+           {[0, 1, 2].map((i) => (
+             <motion.div
+               key={i}
+               animate={{ x: [0, -10, 0], opacity: [0.2, 1, 0.2] }}
+               transition={{ repeat: Infinity, duration: 1.5, delay: (2-i) * 0.2 }}
+             >
+               <ChevronLeft className="w-6 h-6 text-destructive" />
+             </motion.div>
+           ))}
+        </div>
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], borderColor: ["rgba(239,68,68,0.2)", "rgba(239,68,68,0.5)", "rgba(239,68,68,0.2)"] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="size-16 rounded-full border-4 flex items-center justify-center bg-destructive/5 shadow-[0_0_30px_rgba(239,68,68,0.1)]"
+        >
+          <X className="w-8 h-8 text-destructive" />
+        </motion.div>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive text-center max-w-[120px] mt-2">Desliza para rechazar</span>
+      </div>
+
+      <div className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none hidden lg:flex flex-col items-center gap-4 z-0">
+        <div className="flex gap-0 mb-1">
+           {[0, 1, 2].map((i) => (
+             <motion.div
+               key={i}
+               animate={{ x: [0, 10, 0], opacity: [0.2, 1, 0.2] }}
+               transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.2 }}
+             >
+               <ChevronRight className="w-6 h-6 text-emerald-500" />
+             </motion.div>
+           ))}
+        </div>
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], borderColor: ["rgba(16,185,129,0.2)", "rgba(16,185,129,0.5)", "rgba(16,185,129,0.2)"] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="size-16 rounded-full border-4 flex items-center justify-center bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+        >
+          <Check className="w-8 h-8 text-emerald-500" />
+        </motion.div>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 text-center max-w-[120px] mt-2">Desliza para aprobar</span>
+      </div>
       {/* Particles Container */}
       <div className="absolute inset-0 pointer-events-none z-[100] flex items-center justify-center">
         <AnimatePresence>
@@ -563,7 +608,7 @@ function GridView({
               className="relative group"
             >
               <div 
-                className={`absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors ${isSelected ? 'bg-primary/5 ring-2 ring-primary/50' : 'hover:bg-accent/5'}`}
+                className={`absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors ${isSelected ? 'bg-primary/5 ring-2 ring-primary/50' : ''}`}
                 onClick={() => toggleSelection(pub.id)}
               />
               <div className="absolute top-2 left-2 z-20">
@@ -573,28 +618,28 @@ function GridView({
                   className="border-white/50 bg-black/20"
                 />
               </div>
-              <Card className={`border-border bg-card overflow-hidden flex flex-col h-full transition-shadow duration-200 ${isSelected ? 'shadow-md' : 'hover:shadow-lg'}`}>
+              <Card className={`border-border bg-card overflow-hidden flex flex-col h-full transition-shadow duration-200 ${isSelected ? 'shadow-md' : 'shadow-sm'}`}>
                 {/* Header compacto */}
-                <CardHeader className="py-2 px-3.5 border-b shrink-0 bg-card">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="size-6 rounded-full bg-accent flex items-center justify-center text-[9px] font-bold shrink-0 border border-border/50">
-                        {pub.authorName?.charAt(0) || "F"}
+                <CardHeader className="py-2.5 px-3.5 border-b shrink-0 bg-card relative z-20">
+                  <div className="flex flex-col gap-1.5 mb-2">
+                    <Badge variant="outline" className="w-fit text-[9px] font-medium py-0 h-4 border-primary/20 text-primary/70">
+                      {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || "Personal"}`}
+                    </Badge>
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <p className="text-[13px] font-bold truncate">{pub.authorName || "Perfil de Facebook"}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[9px] text-muted-foreground font-medium">
+                          {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                        </span>
+                        <a
+                          href={pub.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
-                      <p className="text-[12px] font-semibold truncate">{pub.authorName || "Perfil de Facebook"}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[9px] text-muted-foreground font-medium">
-                        {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                      </span>
-                      <a
-                        href={pub.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-primary transition-colors p-0.5"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
                     </div>
                   </div>
                 </CardHeader>
@@ -614,20 +659,16 @@ function GridView({
 
                 {/* Contenido */}
                 <CardContent className="p-3.5 flex-1">
-                  <Badge variant="outline" className="text-[10px] font-medium mb-2 max-w-full truncate">
-                    {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || "Personal"}`}
-                  </Badge>
-                  <p className="text-[13px] leading-snug text-foreground/85 line-clamp-3 mt-1">
+                  <p className="text-[13px] leading-snug text-foreground/85 line-clamp-3">
                     {pub.content || "Contenido multimedia o no detectado."}
                   </p>
                 </CardContent>
 
                 {/* Botones de acción */}
-                <CardFooter className="px-3.5 py-2.5 border-t bg-card/50 gap-2">
+                <CardFooter className="px-3.5 py-2.5 border-t bg-card/50 gap-2 relative z-20">
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="flex-1 h-8 text-xs gap-1.5 border-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-colors"
+                    className="flex-1 h-8 text-xs gap-1.5 bg-red-50 text-red-600 border-red-100 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500 dark:hover:text-white transition-colors border shadow-none"
                     disabled={isLoading}
                     onClick={() => handleGridAction(pub.id, "reject")}
                   >
@@ -640,7 +681,7 @@ function GridView({
                   </Button>
                   <Button
                     size="sm"
-                    className="flex-1 h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 transition-colors"
+                    className="flex-1 h-8 text-xs gap-1.5 bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500 dark:hover:text-white transition-colors border shadow-none"
                     disabled={isLoading}
                     onClick={() => handleGridAction(pub.id, "approve")}
                   >

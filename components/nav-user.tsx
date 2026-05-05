@@ -35,7 +35,7 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile, setOpenMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
 
   return (
@@ -78,7 +78,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <Link href="/dashboard/perfil">
+              <Link href="/dashboard/perfil" onClick={() => setOpenMobile(false)}>
                 <DropdownMenuItem className="cursor-pointer">
                   <BadgeCheckIcon className="mr-2 h-4 w-4" />
                   Cuenta
