@@ -323,6 +323,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
                         Detener
                       </Button>
                     ) : null}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-2 w-full">
                     <Button

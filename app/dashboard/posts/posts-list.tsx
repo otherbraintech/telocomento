@@ -15,6 +15,17 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertCircle } from "lucide-react";
 
 type PostWithDetails = {
   id: string;
@@ -41,6 +52,8 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
   const [isPending, setIsPending] = useState(false);
   const [intent, setIntent] = useState<"POSITIVE" | "NEGATIVE">("POSITIVE");
   const [notes, setNotes] = useState("");
+  const [postToReject, setPostToReject] = useState<PostWithDetails | null>(null);
+  const [postDetailModal, setPostDetailModal] = useState<PostWithDetails | null>(null);
 
   // Filtrar y Ordenar: Aprobados primero
   const filteredPosts = posts
@@ -54,24 +67,30 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
       return 0; // Mantener orden original (por fecha desde el servidor)
     });
 
-  const handleStatusToggle = async (post: PostWithDetails) => {
+  const handleApprove = async (post: PostWithDetails) => {
     try {
-      if (post.reviewStatus === "APPROVED") {
-        await rejectPublication(post.id);
-        toast.success("Publicación rechazada");
-      } else {
-        await approvePublication(post.id);
-        toast.success("Publicación aprobada");
-      }
-      // Actualizar estado local
+      await approvePublication(post.id);
+      toast.success("Publicación aprobada");
       setPosts(posts.map(p => 
-        p.id === post.id 
-          ? { ...p, reviewStatus: p.reviewStatus === "APPROVED" ? "REJECTED" : "APPROVED" } 
-          : p
+        p.id === post.id ? { ...p, reviewStatus: "APPROVED" } : p
       ));
     } catch (e) {
-      toast.error("Error al actualizar estado");
+      toast.error("Error al aprobar");
     }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!postToReject) return;
+    try {
+      await rejectPublication(postToReject.id);
+      toast.success("Publicación rechazada");
+      setPosts(posts.map(p => 
+        p.id === postToReject.id ? { ...p, reviewStatus: "REJECTED" } : p
+      ));
+    } catch (e) {
+      toast.error("Error al rechazar");
+    }
+    setPostToReject(null);
   };
 
   const openOrderModal = (post: PostWithDetails) => {
@@ -101,15 +120,15 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="APPROVED" className="w-full" onValueChange={setFilter}>
-        <TabsList className="grid w-full max-w-[400px] grid-cols-3 bg-muted/50">
-          <TabsTrigger value="APPROVED" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Aprobados</TabsTrigger>
-          <TabsTrigger value="REJECTED" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">Rechazados</TabsTrigger>
-          <TabsTrigger value="ALL">Todos</TabsTrigger>
+        <TabsList className="grid w-full max-w-[400px] grid-cols-3 bg-muted/50 p-1">
+          <TabsTrigger value="APPROVED" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white transition-all">Aprobados</TabsTrigger>
+          <TabsTrigger value="REJECTED" className="data-[state=active]:bg-red-500 data-[state=active]:text-white transition-all">Rechazados</TabsTrigger>
+          <TabsTrigger value="ALL" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white transition-all">Todos</TabsTrigger>
         </TabsList>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mt-6 flex flex-col gap-4">
           {filteredPosts.length === 0 ? (
-            <Card className="col-span-full border-dashed border-border/50 bg-background/50 text-muted-foreground">
+            <Card className="border-dashed border-border/50 bg-background/50 text-muted-foreground">
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <Clock className="size-12 text-muted-foreground/30 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -129,44 +148,53 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
             </Card>
           ) : (
             filteredPosts.map((post) => (
-              <Card key={post.id} className="flex flex-col border-border/50 hover:border-border transition-colors shadow-sm overflow-hidden">
-                {/* ... resto del contenido de la tarjeta ... */}
-                <CardHeader className="p-4 border-b bg-muted/20">
-                  <div className="flex justify-between items-start">
+              <Card key={post.id} className="flex flex-col sm:flex-row border-border/50 hover:border-border transition-colors shadow-sm overflow-hidden p-3 gap-4">
+                {/* Minutura de la imagen (Izquierda) */}
+                <div className="shrink-0 w-full sm:w-32 h-32 bg-muted rounded-md overflow-hidden border border-border/10 relative flex items-center justify-center">
+                  {post.imageUrl ? (
+                    <img src={post.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="text-muted-foreground/40 text-xs font-medium">Sin Imagen</span>
+                  )}
+                </div>
+                
+                {/* Detalles (Centro) */}
+                <div className="flex flex-col flex-1 min-w-0 py-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline" className="text-[10px] truncate max-w-[150px]">
                       {post.scrapingCard?.keyword || post.user?.name || "Perfil Personal"}
                     </Badge>
-                    <div className="flex gap-2">
-                      <Badge className={post.reviewStatus === "APPROVED" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}>
-                        {post.reviewStatus === "APPROVED" ? "Aprobado" : "Rechazado"}
-                      </Badge>
-                      <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                        <ExternalLink className="size-4" />
-                      </a>
-                    </div>
+                    <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                      <Clock className="w-3 h-3"/> {new Date(post.publishedAt).toLocaleDateString()}
+                    </span>
+                    <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary ml-auto">
+                      <ExternalLink className="size-4" />
+                    </a>
                   </div>
-                </CardHeader>
-                
-                <CardContent className="p-0 flex flex-col flex-1">
-                  {post.imageUrl && (
-                    <div className="w-full aspect-video bg-muted overflow-hidden border-b border-border/10">
-                      <img src={post.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                       <div className="size-6 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold">
-                         {post.authorName?.charAt(0) || "F"}
-                       </div>
-                       <p className="text-xs font-medium truncate">{post.authorName || "Perfil"}</p>
-                    </div>
-                    <p className="text-sm text-foreground/80 line-clamp-3">
-                      {post.content || "Sin contenido de texto."}
-                    </p>
+                  
+                  <div className="flex items-center gap-2 mb-2">
+                     <div className="size-5 rounded-full bg-accent flex items-center justify-center text-[10px] font-bold">
+                       {post.authorName?.charAt(0) || "F"}
+                     </div>
+                     <p className="text-xs font-medium truncate">{post.authorName || "Perfil"}</p>
                   </div>
-                </CardContent>
+                  
+                  <p className="text-sm text-foreground/80 line-clamp-2 mt-1">
+                    {post.content || "Sin contenido de texto."}
+                  </p>
+                </div>
 
-                <CardFooter className="p-3 border-t bg-muted/5 flex gap-2">
+                {/* Acciones (Derecha) */}
+                <div className="shrink-0 flex flex-col sm:w-40 gap-2 justify-center border-t sm:border-t-0 sm:border-l border-border/10 pt-3 sm:pt-0 sm:pl-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-8 text-[11px] bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-600 hover:text-white"
+                    onClick={() => setPostDetailModal(post)}
+                  >
+                    <Eye className="size-3 mr-1" /> Ver Detalle
+                  </Button>
+
                   {(() => {
                     const activeOrder = post.orders.find(o => o.status !== "CANCELLED");
                     const hasActiveOrder = !!activeOrder;
@@ -176,34 +204,42 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
                         {hasActiveOrder ? (
                           <Button 
                             asChild
-                            variant="default" 
+                            variant="outline" 
                             size="sm" 
-                            className="flex-1 h-8 text-[11px]"
+                            className="w-full h-8 text-[11px] bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-600 hover:text-white"
                           >
                             <Link href={`/dashboard/ordenes/${activeOrder.id}/comentarios`}>
-                              <Eye className="size-3 mr-1" /> Ver Orden
+                              <MessageSquarePlus className="size-3 mr-1" /> Ver Orden
                             </Link>
+                          </Button>
+                        ) : post.reviewStatus === "APPROVED" ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full h-8 text-[11px] bg-red-50 text-red-600 border-red-200 hover:bg-red-600 hover:text-white" 
+                            onClick={() => setPostToReject(post)}
+                          >
+                            <X className="size-3 mr-1" /> Rechazar
                           </Button>
                         ) : (
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="flex-1 h-8 text-[11px]" 
-                            onClick={() => handleStatusToggle(post)}
+                            className="w-full h-8 text-[11px] bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white" 
+                            onClick={() => handleApprove(post)}
                           >
-                            {post.reviewStatus === "APPROVED" ? (
-                              <><X className="size-3 mr-1" /> Rechazar</>
-                            ) : (
-                              <><Check className="size-3 mr-1" /> Aprobar</>
-                            )}
+                            <Check className="size-3 mr-1" /> Aprobar
                           </Button>
                         )}
 
                         {post.reviewStatus === "APPROVED" && (
                           <Button 
-                            variant={hasActiveOrder ? "ghost" : "default"} 
+                            variant="outline" 
                             size="sm" 
-                            className="flex-1 h-8 text-[11px]"
+                            className={hasActiveOrder 
+                              ? "w-full h-8 text-[11px] bg-slate-50 text-slate-500 border-slate-200 opacity-70"
+                              : "w-full h-8 text-[11px] bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white"
+                            }
                             disabled={hasActiveOrder}
                             onClick={() => openOrderModal(post)}
                           >
@@ -217,7 +253,7 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
                       </>
                     );
                   })()}
-                </CardFooter>
+                </div>
               </Card>
             ))
           )}
@@ -262,6 +298,82 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
               {isPending ? "Generando..." : "Confirmar Orden"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={!!postToReject} onOpenChange={(open) => !open && setPostToReject(null)}>
+        <AlertDialogContent className="max-w-[400px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+              <div className="size-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <AlertDialogTitle className="text-xl font-black">Confirmar Rechazo</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm">
+              ¿Estás seguro de que deseas rechazar esta publicación? Se eliminarán las órdenes asociadas a la misma si las hubiera. Esta acción es difícil de deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="font-bold border-2">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmReject}
+              className="bg-red-600 hover:bg-red-700 text-white font-black"
+            >
+              Sí, rechazar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={!!postDetailModal} onOpenChange={(open) => !open && setPostDetailModal(null)}>
+        <DialogContent className="p-0 border-border/50 max-w-[450px] overflow-hidden">
+          {postDetailModal && (
+            <div className="flex flex-col max-h-[85vh]">
+              <div className="p-4 border-b bg-muted/20 flex justify-between items-start shrink-0">
+                <Badge variant="outline" className="text-[10px] max-w-[150px] truncate">
+                  {postDetailModal.scrapingCard?.keyword || postDetailModal.user?.name || "Perfil Personal"}
+                </Badge>
+                <a href={postDetailModal.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                  <ExternalLink className="size-4" />
+                </a>
+              </div>
+              
+              <div className="overflow-y-auto flex-1">
+                {postDetailModal.imageUrl && (
+                  <div className="w-full bg-muted border-b border-border/10 flex justify-center">
+                    <img 
+                      src={postDetailModal.imageUrl} 
+                      className="max-w-full max-h-[300px] object-contain" 
+                      alt="Publicación" 
+                      referrerPolicy="no-referrer" 
+                    />
+                  </div>
+                )}
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="size-8 rounded-full bg-accent flex items-center justify-center text-xs font-bold">
+                       {postDetailModal.authorName?.charAt(0) || "F"}
+                     </div>
+                     <div>
+                       <p className="text-sm font-semibold">{postDetailModal.authorName || "Perfil"}</p>
+                       <p className="text-[10px] text-muted-foreground">
+                         {new Date(postDetailModal.publishedAt).toLocaleDateString()}
+                       </p>
+                     </div>
+                  </div>
+                  <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                    {postDetailModal.content || "Sin contenido de texto."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t bg-muted/5 flex gap-2 shrink-0 justify-end">
+                <Button variant="outline" onClick={() => setPostDetailModal(null)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

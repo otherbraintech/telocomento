@@ -7,9 +7,9 @@ import { redirect } from "next/navigation";
 export default async function PublicacionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tarjetaId?: string; keyword?: string; desde?: string }>;
+  searchParams: Promise<{ tarjetaId?: string; keyword?: string; desde?: string; status?: string }>;
 }) {
-  const { tarjetaId, keyword, desde } = await searchParams;
+  const { tarjetaId, keyword, desde, status } = await searchParams;
 
   // Si viene un tarjetaId pero no keyword, lo buscamos en BD
   let cardKeyword = keyword;
@@ -29,9 +29,12 @@ export default async function PublicacionesPage({
     ? { createdAt: { gte: new Date(desde) } }
     : {};
 
+  // Filtro de estado
+  const statusFilter = (status && status !== "ALL" ? { reviewStatus: status } : { reviewStatus: "PENDING" }) as any;
+
   const pendingPublications = await prisma.publication.findMany({
     where: {
-      reviewStatus: "PENDING",
+      ...statusFilter,
       OR: [
         { userId: session.user.id },
         { scrapingCard: { userId: session.user.id } }

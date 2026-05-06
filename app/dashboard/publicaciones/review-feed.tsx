@@ -1,15 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, Dispatch, SetStateAction } from "react";
 import { rejectPublication, approvePublication } from "@/lib/actions/publications";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, X, ExternalLink, Bot, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, X, ExternalLink, Bot, Loader2, Search, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type PublicationWithCard = {
   id: string;
@@ -29,15 +39,275 @@ type PublicationWithCard = {
   } | null;
 };
 
+/* ================================================================
+ * GRID VIEW — Componente separado para la vista de cuadrícula
+ * ================================================================ */
+
+function GridView({
+  publications: initialPubs,
+  setPublications: setParentPubs,
+  emptyState,
+  setPubToReject,
+}: {
+  publications: PublicationWithCard[];
+  setPublications: Dispatch<SetStateAction<PublicationWithCard[]>>;
+  emptyState: React.ReactNode;
+  setPubToReject: Dispatch<SetStateAction<string | null>>;
+}) {
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === initialPubs.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(initialPubs.map((p) => p.id)));
+  };
+
+  const handleBatchAction = async (action: "approve" | "reject") => {
+    if (selectedIds.size === 0) return;
+    setIsBatchLoading(true);
+    const idsToProcess = Array.from(selectedIds);
+    
+    toast.promise(
+      Promise.all(idsToProcess.map(id => action === "approve" ? approvePublication(id) : rejectPublication(id))),
+      {
+        loading: `${action === "approve" ? "Aprobando" : "Rechazando"} ${selectedIds.size} publicaciones...`,
+        success: () => {
+          setParentPubs(prev => prev.filter(p => !selectedIds.has(p.id)));
+          setSelectedIds(new Set());
+          return `${selectedIds.size} publicaciones ${action === "approve" ? "aprobadas" : "rechazadas"}`;
+        },
+        error: "Error al procesar el lote",
+      }
+    );
+    setIsBatchLoading(false);
+  };
+
+  const handleGridAction = async (pubId: string, action: "approve" | "reject") => {
+    if (action === "reject") {
+      setPubToReject(pubId);
+      return;
+    }
+    setLoadingIds((prev) => new Set(prev).add(pubId));
+
+    try {
+      if (action === "approve") {
+        await approvePublication(pubId);
+        toast.success("Publicación aprobada", { position: "bottom-right", duration: 1000 });
+      } else {
+        await rejectPublication(pubId);
+        toast.error("Publicación rechazada", { position: "bottom-right", duration: 1000 });
+      }
+
+      setParentPubs((prev) => prev.filter((p) => p.id !== pubId));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pubId);
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Error al procesar la publicación");
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pubId);
+        return next;
+      });
+    }
+  };
+
+  if (initialPubs.length === 0) {
+    return emptyState;
+  }
+
+  return (
+    <div className="space-y-4 pb-8">
+      {/* Batch Actions Toolbar */}
+      <div className="flex items-center justify-between bg-accent/50 p-2 rounded-lg border border-border/50 sticky top-0 z-10 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+           <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">
+             {selectedIds.size === initialPubs.length ? "Deseleccionar todo" : "Seleccionar todo"}
+           </Button>
+           {selectedIds.size > 0 && (
+             <span className="text-xs font-bold text-primary">
+               {selectedIds.size} seleccionadas
+             </span>
+           )}
+        </div>
+        <div className="flex items-center gap-2">
+           {selectedIds.size > 0 && (
+             <>
+               <Button 
+                 variant="destructive" 
+                 size="sm" 
+                 className="h-8 text-xs gap-1.5" 
+                 disabled={isBatchLoading}
+                 onClick={() => handleBatchAction("reject")}
+               >
+                 <X className="w-3.5 h-3.5" />
+                 Rechazar lote
+               </Button>
+               <Button 
+                 size="sm" 
+                 className="h-8 text-xs gap-1.5" 
+                 disabled={isBatchLoading}
+                 onClick={() => handleBatchAction("approve")}
+               >
+                 <Check className="w-3.5 h-3.5" />
+                 Aprobar lote
+               </Button>
+             </>
+           )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence mode="popLayout">
+          {initialPubs.map((pub) => {
+            const isLoading = loadingIds.has(pub.id);
+            const isSelected = selectedIds.has(pub.id);
+          return (
+            <motion.div
+              key={pub.id}
+              layout
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative group"
+            >
+              <div 
+                className={`absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors ${isSelected ? 'bg-primary/5 ring-2 ring-primary/50' : ''}`}
+                onClick={() => toggleSelection(pub.id)}
+              />
+              <div className="absolute top-2 left-2 z-20">
+                <Checkbox 
+                  checked={isSelected} 
+                  onCheckedChange={() => toggleSelection(pub.id)}
+                  className="border-white/50 bg-black/20"
+                />
+              </div>
+              <Card className={`border-border bg-card overflow-hidden flex flex-col h-full transition-all duration-300 ${isSelected ? 'ring-2 ring-primary/50 shadow-lg' : 'shadow-sm'}`}>
+                {/* Header compacto */}
+                <CardHeader className="pt-1.5 pb-2 px-3 border-b shrink-0 bg-card/30 relative z-20">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 h-4 bg-primary/10 text-primary border-none">
+                      {pub.scrapingCard?.keyword || "General"}
+                    </Badge>
+                    <a
+                      href={pub.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-primary transition-all p-1 hover:bg-primary/10 rounded-full"
+                      title="Ver publicación original"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                  <div className="flex items-end justify-between gap-3 mt-0">
+                    <p className="text-sm font-black text-foreground leading-tight truncate flex-1" title={pub.authorName || "Perfil"}>
+                      {pub.authorName || "Perfil de Facebook"}
+                    </p>
+                    <span className="text-[10px] text-muted-foreground font-medium shrink-0 mb-0.5">
+                      {new Date(pub.publishedAt).toLocaleDateString("es-ES", { 
+                        day: "numeric", 
+                        month: "short",
+                        year: "numeric"
+                      })}
+                    </span>
+                  </div>
+                </CardHeader>
+
+                {/* Imagen */}
+                {pub.imageUrl && (
+                  <div className="w-full h-[140px] overflow-hidden bg-accent/5 border-b border-border/5">
+                    <img
+                      src={pub.imageUrl}
+                      alt="Post"
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                      draggable={false}
+                    />
+                  </div>
+                )}
+
+                {/* Contenido */}
+                <CardContent className="px-3 py-2.5 flex-1">
+                  <p className="text-[13px] leading-relaxed text-foreground/80 font-normal line-clamp-3">
+                    {pub.content || "Contenido multimedia o no detectado."}
+                  </p>
+                </CardContent>
+
+                {/* Botones de acción */}
+                <CardFooter className="px-3 py-3 border-t bg-card/50 flex justify-center gap-8 relative z-20">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="w-10 h-10 rounded-full border-2 border-red-200 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm group/btn"
+                      disabled={isLoading}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGridAction(pub.id, "reject");
+                      }}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                      )}
+                    </Button>
+                    <span className="text-[11px] font-black text-red-500 uppercase tracking-wider">Rechazar</span>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="w-10 h-10 rounded-full border-2 border-emerald-200 bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm group/btn"
+                      disabled={isLoading}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGridAction(pub.id, "approve");
+                      }}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                      )}
+                    </Button>
+                    <span className="text-[11px] font-black text-emerald-500 uppercase tracking-wider">Aprobar</span>
+                  </div>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>    </div>
+  );
+}
+
 export default function ReviewFeed({ initialPublications }: { initialPublications: PublicationWithCard[] }) {
   const [publications, setPublications] = useState(initialPublications);
-  const [activePub, setActivePub] = useState<PublicationWithCard | null>(publications[0] || null);
   const [isPending, setIsPending] = useState(false);
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
   const [isExiting, setIsExiting] = useState(false);
   const [viewMode, setViewMode] = useState<"swipe" | "grid">("swipe");
   const [combo, setCombo] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pubToReject, setPubToReject] = useState<string | null>(null);
 
   // Filtrar publicaciones basadas en la búsqueda
   const filteredPublications = publications.filter(p => {
@@ -53,10 +323,26 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   // El activePub debe ser el primero de la lista filtrada
   const displayPub = viewMode === "swipe" ? filteredPublications[0] : null;
 
+  const handleConfirmReject = async () => {
+    if (!pubToReject) return;
+    setIsPending(true);
+    try {
+      await rejectPublication(pubToReject);
+      setPublications(prev => prev.filter(p => p.id !== pubToReject));
+      toast.error("Publicación rechazada", { position: "bottom-right", duration: 1000 });
+    } catch (e) {
+      console.error(e);
+      toast.error("Error al rechazar");
+    } finally {
+      setIsPending(false);
+      setPubToReject(null);
+    }
+  };
+
   // Atajos de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (viewMode !== "swipe" || isPending || isExiting || !activePub) return;
+      if (viewMode !== "swipe" || isPending || isExiting || !displayPub) return;
       
       if (e.key === "ArrowRight") {
         handleApprove();
@@ -67,7 +353,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [viewMode, isPending, isExiting, activePub]);
+  }, [viewMode, isPending, isExiting, displayPub]);
 
   // Escuchar cambio de vista desde el toolbar
   useEffect(() => {
@@ -110,7 +396,6 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
 
   useEffect(() => {
     setPublications(initialPublications);
-    setActivePub(initialPublications[0] || null);
   }, [initialPublications]);
 
   const triggerParticles = (color: string) => {
@@ -124,21 +409,20 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
     setTimeout(() => setParticles([]), 800);
   };
 
-  const nextPublication = () => {
-    const updated = publications.filter(p => p.id !== activePub?.id);
-    setPublications(updated);
-    setActivePub(updated[0] || null);
+  const nextPublication = (idToRemove: string) => {
+    setPublications(prev => prev.filter(p => p.id !== idToRemove));
     setIsExiting(false);
     x.set(0); 
   };
 
   // Anima la tarjeta volando hacia un lado y luego ejecuta la acción
   const flyAndAct = async (direction: "left" | "right") => {
-    if (!activePub || isPending || isExiting) return;
+    if (!displayPub || isPending || isExiting) return;
     setIsPending(true);
     setIsExiting(true);
 
     const flyTo = direction === "right" ? 1200 : -1200;
+    const pubToProcess = displayPub;
 
     // Partículas y toast inmediato
     if (direction === "right") {
@@ -146,31 +430,36 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
       setCombo(prev => prev + 1);
       const currentCombo = combo + 1;
       if (currentCombo > 2) {
-        toast.success(`¡Combo x${currentCombo}! 🔥`, { position: "bottom-right", duration: 1000 });
+        toast.success(`¡Combo x${currentCombo}! 🔥`, { position: "bottom-right", duration: 800 });
       } else {
-        toast.success("Publicación aprobada", { position: "bottom-right" });
+        toast.success("Publicación aprobada", { position: "bottom-right", duration: 1000 });
       }
     } else {
       triggerParticles("#ef4444");
-      setCombo(0); // El rechazo rompe el combo o podemos decidir que no
-      toast.error("Publicación rechazada", { position: "bottom-right" });
+      setCombo(0);
+      toast.error("Publicación rechazada", { position: "bottom-right", duration: 1000 });
     }
 
-    // Animar la card volando hacia el lado
-    await animate(x, flyTo, { duration: 0.35, ease: "easeIn" });
+    // Animar la card volando hacia el lado con efecto de escala
+    await animate(x, flyTo, { duration: 0.3, ease: "easeIn" });
 
-    // Ejecutar acción en servidor
-    try {
-      if (direction === "right") {
-        await approvePublication(activePub.id);
-      } else {
-        await rejectPublication(activePub.id);
+    // Ejecutar acción en servidor sin bloquear la UI de la siguiente tarjeta
+    const processAction = async () => {
+      try {
+        if (direction === "right") {
+          await approvePublication(pubToProcess.id);
+        } else {
+          await rejectPublication(pubToProcess.id);
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("Error al procesar la publicación", { duration: 1500 });
       }
-    } catch (e) {
-      console.error(e);
-    }
+    };
+    
+    processAction(); // Corre en segundo plano
 
-    nextPublication();
+    nextPublication(pubToProcess.id);
     setIsPending(false);
   };
 
@@ -191,17 +480,21 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
   };
 
   // Transformaciones para los botones
-  const rejectScale = useTransform(x, [-350, 0], [1.3, 1]);
-  const approveScale = useTransform(x, [0, 350], [1, 1.3]);
-  const rejectBg = useTransform(x, [-350, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.15)"]);
-  const approveBg = useTransform(x, [0, 350], ["rgba(34 197 94, 0.15)", "rgb(34 197 94)"]);
+  const rejectScale = useTransform(x, [-350, 0], [1.2, 1]);
+  const approveScale = useTransform(x, [0, 350], [1, 1.2]);
+  const rejectBg = useTransform(x, [-350, 0], ["rgb(239 68 68)", "rgba(239 68 68, 0.05)"]);
+  const approveBg = useTransform(x, [0, 350], ["rgba(34 197 94, 0.05)", "rgb(34 197 94)"]);
   const rejectColor = useTransform(x, [-350, 0], ["#ffffff", "#ef4444"]);
   const approveColor = useTransform(x, [0, 350], ["#22c55e", "#ffffff"]);
 
-  const renderCardContent = (pub: typeof activePub, isBackground = false, onApprove?: () => void, onReject?: () => void) => {
+  const getStatusBorder = (status: string) => {
+    return "border-border shadow-2xl";
+  };
+
+  const renderCardContent = (pub: PublicationWithCard | null, isBackground = false, onApprove?: () => void, onReject?: () => void) => {
     if (!pub) return null;
     return (
-      <Card className={`w-full border-border shadow-2xl relative overflow-hidden bg-card select-none flex flex-col ${isBackground ? 'pointer-events-none' : ''}`}>
+      <Card className={`w-full ${getStatusBorder(pub.reviewStatus)} relative overflow-hidden bg-card select-none flex flex-col transition-colors duration-300 ${isBackground ? 'pointer-events-none' : ''}`}>
         {!isBackground && (
           <>
             {/* Feedback Overlays */}
@@ -210,7 +503,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
                 style={{ opacity: approveTextOpacity, scale: approveTextScale, rotate: -15 }}
                 className="border-[12px] border-white px-8 py-3 rounded-2xl drop-shadow-[0_0_20px_rgba(0,0,0,0.4)]"
               >
-                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg">APROBADO</span>
+                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg uppercase">Aprobar</span>
               </motion.div>
             </motion.div>
 
@@ -219,82 +512,95 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
                 style={{ opacity: rejectTextOpacity, scale: rejectTextScale, rotate: 15 }}
                 className="border-[12px] border-white px-8 py-3 rounded-2xl drop-shadow-[0_0_20px_rgba(0,0,0,0.4)]"
               >
-                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg">RECHAZADO</span>
+                <span className="text-white text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-lg uppercase">Rechazar</span>
               </motion.div>
             </motion.div>
           </>
         )}
         
-        <CardHeader className="py-2.5 px-5 border-b shrink-0 bg-card">
-          <div className="flex justify-end items-center mb-1.5">
+        <CardHeader className="pt-2 pb-2.5 px-4 border-b shrink-0 bg-card/30">
+          <div className="flex items-center justify-between mb-1">
+            <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0 h-5 bg-primary/10 text-primary border-none">
+              {pub.scrapingCard?.keyword || "General"}
+            </Badge>
             {!isBackground && (
-              <a href={pub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-1" onClick={(e) => e.stopPropagation()}>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 text-[10px] gap-1.5 px-2 bg-background/50 hover:bg-primary/10 hover:text-primary transition-all border-border/50"
+                asChild
+              >
+                <a href={pub.sourceUrl} target="_blank" rel="noopener noreferrer">
+                  Ver publicación <ExternalLink className="w-3 h-3" />
+                </a>
+              </Button>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <Badge variant="outline" className="w-fit text-[10px] font-medium py-0 h-5 border-primary/20 text-primary/80">
-              {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || 'Personal'}`}
-            </Badge>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-[14px] font-bold truncate max-w-[280px]">{pub.authorName || "Perfil de Facebook"}</p>
-              </div>
-              <span className="text-[9px] text-muted-foreground font-medium">
-                {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-              </span>
-            </div>
+          <div className="flex items-end justify-between gap-4 mt-0">
+            <h3 className="text-[15px] font-black text-foreground leading-tight truncate flex-1" title={pub.authorName || "Perfil"}>
+              {pub.authorName || "Perfil de Facebook"}
+            </h3>
+            <span className="text-[11px] text-muted-foreground font-medium shrink-0 mb-0.5">
+              {new Date(pub.publishedAt).toLocaleDateString("es-ES", { 
+                day: "numeric", 
+                month: "short",
+                year: "numeric"
+              })}
+            </span>
           </div>
         </CardHeader>
 
         <CardContent className="p-0 flex flex-col bg-card overflow-hidden">
           {pub.imageUrl && (
-            <div className="w-full h-[180px] sm:h-[220px] overflow-hidden bg-accent/5 shrink-0 border-b border-border/5">
+            <div className="w-full h-[170px] sm:h-[220px] overflow-hidden bg-accent/5 shrink-0 border-b border-border/10">
               <img src={pub.imageUrl} alt="Post" className="w-full h-full object-cover" referrerPolicy="no-referrer" draggable={false} />
             </div>
           )}
-          <div className="p-5 flex flex-col gap-2">
-            <p className="text-[14px] leading-snug text-foreground/90 font-normal line-clamp-3">
+          <div className="px-4 py-3 flex flex-col gap-1">
+            <p className="text-[13px] leading-relaxed text-foreground/80 font-normal line-clamp-3">
               {pub.content || "Contenido multimedia o no detectado."}
             </p>
-            {!isBackground && (
-              <a href={pub.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary font-bold hover:underline mt-1 inline-block" onClick={(e) => e.stopPropagation()}>
-                Ver publicación original →
-              </a>
-            )}
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-center gap-14 py-5 border-t shrink-0 bg-card/50">
-          <motion.button
-            style={!isBackground ? { scale: rejectScale, backgroundColor: rejectBg, color: rejectColor } : {}}
-            whileHover={!isBackground ? { scale: 1.15, backgroundColor: "rgb(239, 68, 68)", color: "#ffffff", borderColor: "rgb(239, 68, 68)" } : {}}
-            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-destructive/10 bg-destructive/5 text-destructive/30' : 'border-destructive/20 bg-destructive/10'}`}
-            onClick={(e) => {
-              if (!isBackground && onReject) {
-                e.stopPropagation();
-                onReject();
-              }
-            }}
-            disabled={isBackground || isPending}
-          >
-            <X className="w-7 h-7" />
-          </motion.button>
-          <motion.button
-            style={!isBackground ? { scale: approveScale, backgroundColor: approveBg, color: approveColor } : {}}
-            whileHover={!isBackground ? { scale: 1.15, backgroundColor: "rgb(34, 197, 94)", color: "#ffffff", borderColor: "rgb(34, 197, 94)" } : {}}
-            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-md active:scale-90 ${isBackground ? 'border-primary/10 bg-primary/5 text-primary/30' : 'border-primary/20 bg-primary/10'}`}
-            onClick={(e) => {
-              if (!isBackground && onApprove) {
-                e.stopPropagation();
-                onApprove();
-              }
-            }}
-            disabled={isBackground || isPending}
-          >
-            <Check className="w-7 h-7" />
-          </motion.button>
+        <CardFooter className="flex justify-center items-center px-6 py-4 border-t shrink-0 bg-card/50">
+          <div className="flex gap-12">
+            <div className="flex flex-col items-center gap-1.5">
+              <motion.button
+                style={!isBackground ? { scale: rejectScale, backgroundColor: rejectBg, color: rejectColor } : {}}
+                whileHover={!isBackground ? { scale: 1.1, backgroundColor: "rgb(239, 68, 68)", color: "#ffffff" } : {}}
+                className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-lg active:scale-90 ${isBackground ? 'border-destructive/10 bg-destructive/5 text-destructive/30' : 'border-destructive/20 bg-destructive/5'}`}
+                onClick={(e) => {
+                  if (!isBackground && onReject) {
+                    e.stopPropagation();
+                    onReject();
+                  }
+                }}
+                disabled={isBackground || isPending}
+              >
+                <X className="w-7 h-7" />
+              </motion.button>
+              <span className="text-[12px] font-black text-red-500 uppercase tracking-widest">Rechazar</span>
+            </div>
+
+            <div className="flex flex-col items-center gap-1.5">
+              <motion.button
+                style={!isBackground ? { scale: approveScale, backgroundColor: approveBg, color: approveColor } : {}}
+                whileHover={!isBackground ? { scale: 1.1, backgroundColor: "rgb(34, 197, 94)", color: "#ffffff" } : {}}
+                className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-lg active:scale-90 ${isBackground ? 'border-primary/10 bg-primary/5 text-primary/30' : 'border-primary/20 bg-primary/5'}`}
+                onClick={(e) => {
+                  if (!isBackground && onApprove) {
+                    e.stopPropagation();
+                    onApprove();
+                  }
+                }}
+                disabled={isBackground || isPending}
+              >
+                <Check className="w-7 h-7" />
+              </motion.button>
+              <span className="text-[12px] font-black text-emerald-500 uppercase tracking-widest">Aprobar</span>
+            </div>
+          </div>
         </CardFooter>
       </Card>
     );
@@ -331,6 +637,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
         publications={filteredPublications}
         setPublications={setPublications}
         emptyState={emptyState}
+        setPubToReject={setPubToReject}
       />
     );
   }
@@ -339,7 +646,33 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
    * VISTA SWIPE (Original) — Stack de tarjetas con drag
    * ================================================================ */
   return (
-    <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-260px)] min-h-[400px] overflow-hidden -mt-2 relative">
+    <>
+      <AlertDialog open={!!pubToReject} onOpenChange={(open) => !open && setPubToReject(null)}>
+        <AlertDialogContent className="max-w-[400px]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+              <div className="size-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <AlertDialogTitle className="text-xl font-black">Confirmar Rechazo</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm">
+              ¿Estás seguro de que deseas rechazar esta publicación? Esta acción no se puede deshacer fácilmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="font-bold border-2">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmReject}
+              className="bg-red-600 hover:bg-red-700 text-white font-black"
+            >
+              Sí, rechazar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="flex flex-col items-center justify-start w-full h-[calc(100vh-260px)] min-h-[400px] overflow-hidden -mt-2 relative">
       {/* Swipe Hints - Premium Design */}
       <div className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none hidden lg:flex flex-col items-center gap-4 z-0">
         <div className="flex gap-0 mb-1">
@@ -444,7 +777,7 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
 
         {/* 3. Tarjeta Activa — sin dragConstraints para que no rebote */}
         <AnimatePresence mode="popLayout">
-          {displayPub && !isExiting && (
+          {displayPub && (
             <motion.div
               key={displayPub.id}
               style={{ x, rotate, opacity: cardOpacity }}
@@ -459,246 +792,10 @@ export default function ReviewFeed({ initialPublications }: { initialPublication
               {renderCardContent(displayPub, false, handleApprove, handleReject)}
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence>      </div>
       </div>
-    </div>
+    </>
   );
 }
 
 
-/* ================================================================
- * GRID VIEW — Componente separado para la vista de cuadrícula
- * ================================================================ */
-
-function GridView({
-  publications: initialPubs,
-  setPublications: setParentPubs,
-  emptyState,
-}: {
-  publications: PublicationWithCard[];
-  setPublications: React.Dispatch<React.SetStateAction<PublicationWithCard[]>>;
-  emptyState: React.ReactNode;
-}) {
-  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isBatchLoading, setIsBatchLoading] = useState(false);
-
-  const toggleSelection = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const selectAll = () => {
-    if (selectedIds.size === initialPubs.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(initialPubs.map((p) => p.id)));
-  };
-
-  const handleBatchAction = async (action: "approve" | "reject") => {
-    if (selectedIds.size === 0) return;
-    setIsBatchLoading(true);
-    const idsToProcess = Array.from(selectedIds);
-    
-    toast.promise(
-      Promise.all(idsToProcess.map(id => action === "approve" ? approvePublication(id) : rejectPublication(id))),
-      {
-        loading: `${action === "approve" ? "Aprobando" : "Rechazando"} ${selectedIds.size} publicaciones...`,
-        success: () => {
-          setParentPubs(prev => prev.filter(p => !selectedIds.has(p.id)));
-          setSelectedIds(new Set());
-          return `${selectedIds.size} publicaciones ${action === "approve" ? "aprobadas" : "rechazadas"}`;
-        },
-        error: "Error al procesar el lote",
-      }
-    );
-    setIsBatchLoading(false);
-  };
-
-  const handleGridAction = async (pubId: string, action: "approve" | "reject") => {
-    setLoadingIds((prev) => new Set(prev).add(pubId));
-
-    try {
-      if (action === "approve") {
-        await approvePublication(pubId);
-        toast.success("Publicación aprobada", { position: "bottom-right" });
-      } else {
-        await rejectPublication(pubId);
-        toast.error("Publicación rechazada", { position: "bottom-right" });
-      }
-
-      setParentPubs((prev) => prev.filter((p) => p.id !== pubId));
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(pubId);
-        return next;
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al procesar la publicación");
-    } finally {
-      setLoadingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(pubId);
-        return next;
-      });
-    }
-  };
-
-  if (initialPubs.length === 0) {
-    return emptyState;
-  }
-
-  return (
-    <div className="space-y-4 pb-8">
-      {/* Batch Actions Toolbar */}
-      <div className="flex items-center justify-between bg-accent/50 p-2 rounded-lg border border-border/50 sticky top-0 z-10 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-           <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">
-             {selectedIds.size === initialPubs.length ? "Deseleccionar todo" : "Seleccionar todo"}
-           </Button>
-           {selectedIds.size > 0 && (
-             <span className="text-xs font-bold text-primary">
-               {selectedIds.size} seleccionadas
-             </span>
-           )}
-        </div>
-        <div className="flex items-center gap-2">
-           {selectedIds.size > 0 && (
-             <>
-               <Button 
-                 variant="destructive" 
-                 size="sm" 
-                 className="h-8 text-xs gap-1.5" 
-                 disabled={isBatchLoading}
-                 onClick={() => handleBatchAction("reject")}
-               >
-                 <X className="w-3.5 h-3.5" />
-                 Rechazar lote
-               </Button>
-               <Button 
-                 size="sm" 
-                 className="h-8 text-xs gap-1.5" 
-                 disabled={isBatchLoading}
-                 onClick={() => handleBatchAction("approve")}
-               >
-                 <Check className="w-3.5 h-3.5" />
-                 Aprobar lote
-               </Button>
-             </>
-           )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <AnimatePresence mode="popLayout">
-          {initialPubs.map((pub) => {
-            const isLoading = loadingIds.has(pub.id);
-            const isSelected = selectedIds.has(pub.id);
-          return (
-            <motion.div
-              key={pub.id}
-              layout
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -10 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="relative group"
-            >
-              <div 
-                className={`absolute inset-0 z-10 cursor-pointer rounded-xl transition-colors ${isSelected ? 'bg-primary/5 ring-2 ring-primary/50' : ''}`}
-                onClick={() => toggleSelection(pub.id)}
-              />
-              <div className="absolute top-2 left-2 z-20">
-                <Checkbox 
-                  checked={isSelected} 
-                  onCheckedChange={() => toggleSelection(pub.id)}
-                  className="border-white/50 bg-black/20"
-                />
-              </div>
-              <Card className={`border-border bg-card overflow-hidden flex flex-col h-full transition-shadow duration-200 ${isSelected ? 'shadow-md' : 'shadow-sm'}`}>
-                {/* Header compacto */}
-                <CardHeader className="py-2.5 px-3.5 border-b shrink-0 bg-card relative z-20">
-                  <div className="flex flex-col gap-1.5 mb-2">
-                    <Badge variant="outline" className="w-fit text-[9px] font-medium py-0 h-4 border-primary/20 text-primary/70">
-                      {pub.scrapingCard?.keyword || `Perfil: ${pub.user?.name || "Personal"}`}
-                    </Badge>
-                    <div className="flex items-center justify-between gap-2 min-w-0">
-                      <p className="text-[13px] font-bold truncate">{pub.authorName || "Perfil de Facebook"}</p>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] text-muted-foreground font-medium">
-                          {new Date(pub.publishedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                        </span>
-                        <a
-                          href={pub.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-primary transition-colors p-0.5"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                {/* Imagen */}
-                {pub.imageUrl && (
-                  <div className="w-full h-[140px] overflow-hidden bg-accent/5 border-b border-border/5">
-                    <img
-                      src={pub.imageUrl}
-                      alt="Post"
-                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                    />
-                  </div>
-                )}
-
-                {/* Contenido */}
-                <CardContent className="p-3.5 flex-1">
-                  <p className="text-[13px] leading-snug text-foreground/85 line-clamp-3">
-                    {pub.content || "Contenido multimedia o no detectado."}
-                  </p>
-                </CardContent>
-
-                {/* Botones de acción */}
-                <CardFooter className="px-3.5 py-2.5 border-t bg-card/50 gap-2 relative z-20">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-8 text-xs gap-1.5 bg-red-50 text-red-600 border-red-100 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500 dark:hover:text-white transition-colors border shadow-none"
-                    disabled={isLoading}
-                    onClick={() => handleGridAction(pub.id, "reject")}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <X className="w-3.5 h-3.5" />
-                    )}
-                    Rechazar
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 h-8 text-xs gap-1.5 bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-500 hover:text-white dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500 dark:hover:text-white transition-colors border shadow-none"
-                    disabled={isLoading}
-                    onClick={() => handleGridAction(pub.id, "approve")}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5" />
-                    )}
-                    Aprobar
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </div>
-    </div>
-  );
-}

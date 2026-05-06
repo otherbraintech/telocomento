@@ -23,6 +23,7 @@ export default function RootLayout({
       className="h-full antialiased"
       suppressHydrationWarning
     >
+
       <body className="min-h-full flex flex-col font-sans"> {/* v1.0.1 */}
         <ThemeProvider
           attribute="class"
