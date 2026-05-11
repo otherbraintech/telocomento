@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Rss, MessageSquareQuote, CheckCircle2, Search, PlusCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
+import { FindingTrendChart } from "@/components/finding-trend-chart";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -68,6 +69,72 @@ export default async function DashboardPage() {
 
   const cardProgress = Math.min(100, (userCardsCount / cardLimit) * 100);
   const orderProgress = orderLimit > 0 ? Math.min(100, (userActiveOrders / orderLimit) * 100) : 0;
+
+  // Datos para el gráfico comparativo (últimos 7 días)
+  const last7Days = new Date();
+  last7Days.setDate(last7Days.getDate() - 7);
+  last7Days.setHours(0, 0, 0, 0);
+
+  // Consultas paralelas para el gráfico
+  const [dailyPubs, dailyOrders, dailyComments] = await Promise.all([
+    prisma.publication.findMany({
+      where: {
+        createdAt: { gte: last7Days },
+        OR: [
+          { userId: session?.user?.id },
+          { scrapingCard: { userId: session?.user?.id } }
+        ]
+      },
+      select: { createdAt: true }
+    }),
+    prisma.order.findMany({
+      where: {
+        createdAt: { gte: last7Days },
+        userId: session?.user?.id
+      },
+      select: { createdAt: true }
+    }),
+    prisma.comment.findMany({
+      where: {
+        createdAt: { gte: last7Days },
+        order: { userId: session?.user?.id }
+      },
+      select: { createdAt: true }
+    })
+  ]);
+
+  // Agrupar todo por día
+  const chartData = Array.from({ length: 7 }).map((_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    date.setHours(0, 0, 0, 0);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const pubsCount = dailyPubs.filter(f => {
+      const d = new Date(f.createdAt);
+      d.setHours(0,0,0,0);
+      return d.getTime() === date.getTime();
+    }).length;
+
+    const ordersCount = dailyOrders.filter(f => {
+      const d = new Date(f.createdAt);
+      d.setHours(0,0,0,0);
+      return d.getTime() === date.getTime();
+    }).length;
+
+    const commentsCount = dailyComments.filter(f => {
+      const d = new Date(f.createdAt);
+      d.setHours(0,0,0,0);
+      return d.getTime() === date.getTime();
+    }).length;
+    
+    return { 
+      date: dateStr, 
+      publicaciones: pubsCount,
+      ordenes: ordersCount,
+      comentarios: commentsCount
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -195,34 +262,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Tendencia de Hallazgos (Últimas 24h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[200px] w-full flex items-end justify-between gap-1 pt-4 px-2">
-               {/* Simulación de gráfico de barras/tendencia con CSS/SVG */}
-               {[40, 25, 60, 45, 90, 55, 70, 40, 30, 85, 50, 65].map((val, i) => (
-                 <div key={i} className="group relative flex-1 flex flex-col items-center gap-2">
-                    <div 
-                      className="w-full bg-primary/20 rounded-t-sm group-hover:bg-primary/40 transition-all" 
-                      style={{ height: `${val}%` }}
-                    />
-                    <div className="size-1 rounded-full bg-muted-foreground/30" />
-                    {/* Tooltip simple */}
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-md border opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                      {val} hallazgos
-                    </div>
-                 </div>
-               ))}
-            </div>
-            <div className="flex justify-between mt-4 text-[10px] text-muted-foreground font-medium px-1">
-               <span>Hace 24h</span>
-               <span>Hace 12h</span>
-               <span>Ahora</span>
-            </div>
-          </CardContent>
-        </Card>
+        <FindingTrendChart data={chartData} />
 
         <Card className="col-span-3 shadow-sm border-border/50 flex flex-col">
           <CardHeader>

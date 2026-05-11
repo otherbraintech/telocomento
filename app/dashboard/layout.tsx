@@ -1,10 +1,7 @@
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { prisma } from "@/lib/prisma";
 import DynamicBreadcrumbs from "@/components/dynamic-breadcrumbs"
@@ -18,8 +15,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.log(" Cargando DashboardLayout...");
   const session = await auth();
+  console.log(" Sesión obtenida:", session?.user?.id ? "SI" : "NO");
 
+  if (!session?.user?.id) {
+    console.log("🚫 Sin sesión, redirigiendo...");
+    redirect("/login");
+  }
+
+  console.log(" Buscando usuario en BD...");
   const user = await prisma.user.findUnique({
     where: { id: session?.user?.id },
     select: {

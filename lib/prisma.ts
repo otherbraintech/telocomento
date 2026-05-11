@@ -5,7 +5,22 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // 1. Instanciamos el pool de conexiones de 'pg' (PostgreSQL).
 const connectionString = process.env.DATABASE_URL;
 
-const pool = new Pool({ connectionString });
+if (!connectionString) {
+  console.error("❌ ERROR: DATABASE_URL no está definida en las variables de entorno.");
+} else {
+  console.log("🔌 Intentando conectar a la base de datos...");
+}
+
+const pool = new Pool({ 
+  connectionString,
+  max: 10, // Máximo de conexiones simultáneas
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000, // Aumentar tiempo de espera de conexión
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Unexpected error on idle client', err);
+});
 
 // 2. Pasamos el pool al adaptador de Prisma para PostgreSQL
 const adapter = new PrismaPg(pool);

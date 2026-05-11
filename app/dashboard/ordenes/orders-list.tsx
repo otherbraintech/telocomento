@@ -302,7 +302,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
                         ) : (
                           <Button 
                             size="sm" 
-                            className="bg-green-600 hover:bg-green-700 h-9 font-semibold"
+                            className="bg-green-600 hover:bg-green-700 h-9 font-semibold col-span-2"
                             onClick={() => setConfirmStartId(order.id)}
                             disabled={loadingId === order.id}
                           >
@@ -315,7 +315,7 @@ export default function OrdersList({ initialOrders }: { initialOrders: OrderItem
                       <Button 
                         size="sm" 
                         variant="outline"
-                        className="h-9 font-semibold border-orange-500/50 text-orange-600 hover:bg-orange-50"
+                        className="h-9 font-semibold border-orange-500/50 text-orange-600 hover:bg-orange-50 col-span-2"
                         onClick={() => handleStop(order.id)}
                         disabled={loadingId === order.id}
                       >

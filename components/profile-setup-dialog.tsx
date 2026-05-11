@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { UserCircle, Save, Loader2 } from "lucide-react"
 import { updateProfile } from "@/lib/actions/profile"
 import { toast } from "sonner"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface ProfileSetupDialogProps {
   user: {
@@ -67,8 +68,8 @@ export function ProfileSetupDialog({ user }: ProfileSetupDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={isLoading ? undefined : setOpen}>
-      <DialogContent className="sm:max-w-[500px] border-border/50 overflow-hidden p-0">
-        <div className="bg-primary/5 p-6 border-b border-border/50">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] border-border/50 overflow-hidden p-0 flex flex-col">
+        <div className="bg-primary/5 p-6 border-b border-border/50 shrink-0">
           <div className="flex items-center gap-4">
             <div className="size-12 bg-primary/10 rounded-full flex items-center justify-center">
               <UserCircle className="size-7 text-primary" />
@@ -82,38 +83,43 @@ export function ProfileSetupDialog({ user }: ProfileSetupDialogProps) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="setup-name">Nombre Completo</Label>
-              <Input
-                id="setup-name"
-                placeholder="Tu nombre completo"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+        <div className="flex-1 overflow-hidden">
+          <form id="profile-setup-form" onSubmit={handleSubmit} className="p-6 py-4 space-y-4">
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="setup-name">Nombre Completo</Label>
+                <Input
+                  id="setup-name"
+                  placeholder="Tu nombre completo"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="setup-bio">Biografía / Descripción Personal</Label>
+                <Textarea
+                  id="setup-bio"
+                  placeholder="Ej: Soy un emprendedor digital enfocado en marketing para restaurantes en Lima..."
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  className="h-[200px] overflow-y-auto resize-none"
+                  required
+                />
+                <p className="text-[11px] text-muted-foreground italic">
+                  💡 Esta descripción ayuda a nuestra IA a encontrar publicaciones que hablen sobre ti o tus intereses en Facebook.
+                </p>
+              </div>
             </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="setup-bio">Biografía / Descripción Personal</Label>
-              <Textarea
-                id="setup-bio"
-                placeholder="Ej: Soy un emprendedor digital enfocado en marketing para restaurantes en Lima..."
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                className="min-h-[120px] resize-none"
-                required
-              />
-              <p className="text-[11px] text-muted-foreground italic">
-                💡 Esta descripción ayuda a nuestra IA a encontrar publicaciones que hablen sobre ti o tus intereses en Facebook.
-              </p>
-            </div>
-          </div>
+          </form>
+        </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+        <div className="p-4 border-t border-border/50 shrink-0">
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               type="submit" 
+              form="profile-setup-form"
               className="w-full" 
               disabled={isLoading}
             >
@@ -130,7 +136,7 @@ export function ProfileSetupDialog({ user }: ProfileSetupDialogProps) {
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

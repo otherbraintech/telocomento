@@ -67,9 +67,9 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --chart-1: oklch(0.6 0.18 200); /* Azul vibrante */
+  --chart-2: oklch(0.6 0.22 150); /* Verde vibrante */
+  --chart-3: oklch(0.6 0.2 30);   /* Rojo/Naranja vibrante */
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
@@ -102,9 +102,9 @@
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-1: oklch(0.6 0.18 200); /* Azul vibrante */
+  --chart-2: oklch(0.6 0.22 150); /* Verde vibrante */
+  --chart-3: oklch(0.6 0.2 30);   /* Rojo vibrante */
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);

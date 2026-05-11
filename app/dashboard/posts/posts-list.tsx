@@ -261,7 +261,7 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
       </Tabs>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="border-border/50 sm:max-w-[425px]">
+        <DialogContent className="border-border/50 sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Crear Orden para Post</DialogTitle>
             <DialogDescription>
@@ -286,7 +286,7 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
               <Textarea
                 id="notes"
                 placeholder="Ej. Mencionar que esto es una excelente iniciativa..."
-                className="resize-none"
+                className="resize-none min-h-[150px] max-h-[300px] overflow-y-auto"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -326,9 +326,9 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
       </AlertDialog>
 
       <Dialog open={!!postDetailModal} onOpenChange={(open) => !open && setPostDetailModal(null)}>
-        <DialogContent className="p-0 border-border/50 max-w-[450px] overflow-hidden">
+        <DialogContent className="p-0 border-border/50 max-w-3xl overflow-hidden">
           {postDetailModal && (
-            <div className="flex flex-col max-h-[85vh]">
+            <div className="flex flex-col max-h-[90vh]">
               <div className="p-4 border-b bg-muted/20 flex justify-between items-start shrink-0">
                 <Badge variant="outline" className="text-[10px] max-w-[150px] truncate">
                   {postDetailModal.scrapingCard?.keyword || postDetailModal.user?.name || "Perfil Personal"}
@@ -338,32 +338,33 @@ export default function PostsList({ initialPosts }: { initialPosts: any[] }) {
                 </a>
               </div>
               
-              <div className="overflow-y-auto flex-1">
-                {postDetailModal.imageUrl && (
-                  <div className="w-full bg-muted border-b border-border/10 flex justify-center">
-                    <img 
-                      src={postDetailModal.imageUrl} 
-                      className="max-w-full max-h-[300px] object-contain" 
-                      alt="Publicación" 
-                      referrerPolicy="no-referrer" 
-                    />
-                  </div>
-                )}
-                <div className="p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="size-8 rounded-full bg-accent flex items-center justify-center text-xs font-bold">
-                       {postDetailModal.authorName?.charAt(0) || "F"}
-                     </div>
-                     <div>
-                       <p className="text-sm font-semibold">{postDetailModal.authorName || "Perfil"}</p>
-                       <p className="text-[10px] text-muted-foreground">
-                         {new Date(postDetailModal.publishedAt).toLocaleDateString()}
-                       </p>
-                     </div>
-                  </div>
-                  <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                    {postDetailModal.content || "Sin contenido de texto."}
-                  </div>
+              {/* Imagen Fija en la parte superior si existe */}
+              {postDetailModal.imageUrl && (
+                <div className="w-full bg-muted border-b border-border/10 flex justify-center shrink-0">
+                  <img 
+                    src={postDetailModal.imageUrl} 
+                    className="max-w-full max-h-[400px] object-contain" 
+                    alt="Publicación" 
+                    referrerPolicy="no-referrer" 
+                  />
+                </div>
+              )}
+
+              {/* Área de Contenido con scroll independiente */}
+              <div className="overflow-y-auto flex-1 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="size-8 rounded-full bg-accent flex items-center justify-center text-xs font-bold">
+                     {postDetailModal.authorName?.charAt(0) || "F"}
+                   </div>
+                   <div>
+                     <p className="text-sm font-semibold">{postDetailModal.authorName || "Perfil"}</p>
+                     <p className="text-[10px] text-muted-foreground">
+                       {new Date(postDetailModal.publishedAt).toLocaleDateString()}
+                     </p>
+                   </div>
+                </div>
+                <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                  {postDetailModal.content || "Sin contenido de texto."}
                 </div>
               </div>
 
